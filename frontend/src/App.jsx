@@ -18,6 +18,7 @@ import Materials from './pages/Materials';
 import Products from './pages/Products';
 import Marketplaces from './pages/Marketplaces';
 import AdsPerformance from './pages/AdsPerformance';
+import SettingsPage from './pages/Settings';
 
 const Navbar = () => {
   const { user, logout } = useAuth();
@@ -53,8 +54,11 @@ const Navbar = () => {
           )}
         </div>
         {user && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{user.email}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginRight: '0.5rem' }}>{user.email}</span>
+            <NavLink to="/settings" className={({ isActive }) => isActive ? 'btn btn-secondary active' : 'btn btn-secondary'} style={{ padding: '0.5rem' }}>
+              <Settings size={18} />
+            </NavLink>
             <button className="btn btn-secondary" style={{ padding: '0.5rem' }} onClick={logout}>
               <LogOut size={18} />
             </button>
@@ -88,6 +92,7 @@ const AppContent = () => {
             <Route path="/products" element={<Products />} />
             <Route path="/marketplaces" element={<Marketplaces />} />
             <Route path="/ads" element={<AdsPerformance />} />
+            <Route path="/settings" element={<SettingsPage />} />
           </Routes>
         </div>
       </main>

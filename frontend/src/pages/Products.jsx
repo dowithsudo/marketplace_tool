@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+// eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Plus, 
@@ -68,7 +69,7 @@ const Products = () => {
       setBomItems(bomResp.data);
       setHppData(hppResp.data);
       setShowBOMModal(true);
-    } catch (error) {
+    } catch {
       alert("Failed to load BOM data");
     } finally {
       setLoading(false);
@@ -120,7 +121,7 @@ const Products = () => {
       ]);
       setBomItems(bomResp.data);
       setHppData(hppResp.data);
-    } catch (error) {
+    } catch {
       alert("Delete failed");
     }
   };
@@ -131,80 +132,82 @@ const Products = () => {
   );
 
   return (
-    <div className="animate-fade-in">
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <div>
-          <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <Package color="#ec4899" />
-            Products Mastery
-          </h1>
-          <p style={{ color: '#94a3b8' }}>Kelola produk utama dan tentukan struktur biaya produksinya.</p>
-        </div>
-        <button className="btn btn-primary" onClick={() => handleOpenProductModal()}>
-          <Plus size={18} /> Add Product
-        </button>
-      </header>
+    <>
+      <div className="animate-fade-in">
+        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+          <div>
+            <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <Package color="#ec4899" />
+              Products Mastery
+            </h1>
+            <p style={{ color: '#94a3b8' }}>Kelola produk utama dan tentukan struktur biaya produksinya.</p>
+          </div>
+          <button className="btn btn-primary" onClick={() => handleOpenProductModal()}>
+            <Plus size={18} /> Add Product
+          </button>
+        </header>
 
-      <div className="glass-card" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
-        <div style={{ position: 'relative' }}>
-          <Search style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} size={18} />
-          <input 
-            type="text" 
-            className="form-control" 
-            placeholder="Search products by name or ID..." 
-            style={{ paddingLeft: '3rem' }}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+        <div className="glass-card" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
+          <div style={{ position: 'relative' }}>
+            <Search style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} size={18} />
+            <input 
+              type="text" 
+              className="form-control" 
+              placeholder="Search products by name or ID..." 
+              style={{ paddingLeft: '3rem' }}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
         </div>
-      </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, min_max(350px, 1fr))', gap: '1.5rem' }}>
-        {loading && products.length === 0 ? (
-          <div style={{ textAlign: 'center', gridColumn: '1/-1', padding: '3rem' }}>Loading products...</div>
-        ) : filteredProducts.length === 0 ? (
-          <div style={{ textAlign: 'center', gridColumn: '1/-1', padding: '3rem' }}>No products found.</div>
-        ) : filteredProducts.map(product => (
-          <motion.div key={product.id} className="glass-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-              <span className="badge badge-info">{product.id}</span>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button className="btn btn-secondary" style={{ padding: '0.4rem' }} onClick={() => handleOpenProductModal(product)}>
-                  <Edit2 size={14} />
-                </button>
-                <button className="btn btn-danger" style={{ padding: '0.4rem' }} onClick={async () => {
-                  if(window.confirm("Delete product and its BOM?")) {
-                    await productsApi.delete(product.id);
-                    fetchData();
-                  }
-                }}>
-                  <Trash2 size={14} />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, min_max(350px, 1fr))', gap: '1.5rem' }}>
+          {loading && products.length === 0 ? (
+            <div style={{ textAlign: 'center', gridColumn: '1/-1', padding: '3rem' }}>Loading products...</div>
+          ) : filteredProducts.length === 0 ? (
+            <div style={{ textAlign: 'center', gridColumn: '1/-1', padding: '3rem' }}>No products found.</div>
+          ) : filteredProducts.map(product => (
+            <motion.div key={product.id} className="glass-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                <span className="badge badge-info">{product.id}</span>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button className="btn btn-secondary" style={{ padding: '0.4rem' }} onClick={() => handleOpenProductModal(product)}>
+                    <Edit2 size={14} />
+                  </button>
+                  <button className="btn btn-danger" style={{ padding: '0.4rem' }} onClick={async () => {
+                    if(window.confirm("Delete product and its BOM?")) {
+                      await productsApi.delete(product.id);
+                      fetchData();
+                    }
+                  }}>
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+              <h3 style={{ marginBottom: '0.5rem' }}>{product.nama}</h3>
+              <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
+                Biaya Produksi Lain: Rp {product.biaya_lain.toLocaleString()}
+              </p>
+              
+              <div style={{ marginTop: 'auto' }}>
+                <button className="btn btn-secondary" style={{ width: '100%', justifyContent: 'center' }} onClick={() => handleOpenBOMModal(product)}>
+                  <Layers size={16} /> Manage BOM & HPP
+                  <ChevronRight size={16} />
                 </button>
               </div>
-            </div>
-            <h3 style={{ marginBottom: '0.5rem' }}>{product.nama}</h3>
-            <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
-              Biaya Produksi Lain: Rp {product.biaya_lain.toLocaleString()}
-            </p>
-            
-            <div style={{ marginTop: 'auto' }}>
-              <button className="btn btn-secondary" style={{ width: '100%', justifyContent: 'center' }} onClick={() => handleOpenBOMModal(product)}>
-                <Layers size={16} /> Manage BOM & HPP
-                <ChevronRight size={16} />
-              </button>
-            </div>
-          </motion.div>
-        ))}
+            </motion.div>
+          ))}
+        </div>
       </div>
 
       {/* Product Modal */}
       <AnimatePresence>
         {showProductModal && (
-          <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowProductModal(false)}
               style={{ position: 'absolute', inset: 0, background: 'rgba(0, 0, 0, 0.6)', backdropFilter: 'blur(4px)' }} />
             <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-              className="glass-card" style={{ position: 'relative', width: '100%', maxWidth: '450px', padding: '2rem', zIndex: 1001 }}>
+              className="glass-card" style={{ position: 'relative', width: '100%', maxWidth: '450px', padding: '2rem', zIndex: 10000 }}>
               <h3 style={{ marginBottom: '1.5rem' }}>{productForm.id ? 'Edit Product' : 'Add New Product'}</h3>
               <form onSubmit={handleProductSubmit}>
                 <div className="form-group">
@@ -235,11 +238,11 @@ const Products = () => {
       {/* BOM Modal */}
       <AnimatePresence>
         {showBOMModal && (
-          <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowBOMModal(false)}
               style={{ position: 'absolute', inset: 0, background: 'rgba(0, 0, 0, 0.6)', backdropFilter: 'blur(4px)' }} />
             <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-              className="glass-card" style={{ position: 'relative', width: '100%', maxWidth: '800px', maxHeight: '90vh', overflowY: 'auto', padding: '2rem', zIndex: 1001 }}>
+              className="glass-card" style={{ position: 'relative', width: '100%', maxWidth: '800px', maxHeight: '90vh', overflowY: 'auto', padding: '2rem', zIndex: 10000 }}>
               
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                 <div>
@@ -323,7 +326,7 @@ const Products = () => {
           </div>
         )}
       </AnimatePresence>
-    </div>
+    </>
   );
 };
 

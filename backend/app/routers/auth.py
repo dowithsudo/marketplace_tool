@@ -87,3 +87,19 @@ def reset_password(request: schemas.ResetPasswordRequest, db: Session = Depends(
         
     except JWTError:
         raise HTTPException(status_code=400, detail="Token has expired or is invalid")
+
+@router.post("/change-password")
+def change_password(request: schemas.ChangePasswordRequest, current_user: models.User = Depends(get_current_user), db: Session = Depends(database.get_db)):
+    # Verify old password
+    if not auth.verify_password(request.old_password, current_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect"
+        )
+    
+    # Hash and update to new password
+    current_user.hashed_password = auth.get_password_hash(request.new_password)
+    db.add(current_user)
+    db.commit()
+    
+    return {"message": "Password changed successfully"}

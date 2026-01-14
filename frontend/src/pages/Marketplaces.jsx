@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+// eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Plus, 
@@ -7,9 +8,7 @@ import {
   Save,
   ShoppingBag,
   Store,
-  DollarSign,
   Settings2,
-  ListFilter,
   ChevronRight,
   Calculator,
   Percent,
@@ -22,8 +21,7 @@ import {
   storeMarketplaceCostsApi,
   productsApi,
   storeProductsApi,
-  pricingApi,
-  discountsApi
+  pricingApi
 } from '../api';
 
 const Marketplaces = () => {
@@ -31,7 +29,6 @@ const Marketplaces = () => {
   const [stores, setStores] = useState([]);
   const [costTypes, setCostTypes] = useState([]);
   const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
   
   // Modals state
   const [showStoreModal, setShowStoreModal] = useState(false);
@@ -49,10 +46,6 @@ const Marketplaces = () => {
   const [storeProducts, setStoreProducts] = useState([]);
   const [pricingAnalysis, setPricingAnalysis] = useState(null);
 
-  useEffect(() => {
-    fetchBaseData();
-  }, []);
-
   const fetchBaseData = async () => {
     try {
       const [mkts, ctypes, prods] = await Promise.all([
@@ -68,24 +61,46 @@ const Marketplaces = () => {
       setStores(storesResp.data);
     } catch (error) {
       console.error("Failed to load marketplace data", error);
-    } finally {
-      setLoading(false);
     }
   };
 
+  useEffect(() => {
+    let ignore = false;
+    async function startFetching() {
+      try {
+        const [mkts, ctypes, prods] = await Promise.all([
+          marketplacesApi.getAll(),
+          marketplaceCostTypesApi.getAll(),
+          productsApi.getAll()
+        ]);
+        if (!ignore) {
+          setMarketplaces(mkts.data);
+          setCostTypes(ctypes.data);
+          setProducts(prods.data);
+        }
+        
+        const storesResp = await storesApi.getAll();
+        if (!ignore) {
+          setStores(storesResp.data);
+        }
+      } catch (error) {
+        console.error("Failed to load marketplace data", error);
+      }
+    }
+    startFetching();
+    return () => { ignore = true; };
+  }, []);
+
   const handleOpenStoreCosts = async (store) => {
     setSelectedStore(store);
-    setLoading(true);
     try {
       const costs = await storeMarketplaceCostsApi.getAll(store.id);
       const sps = await storeProductsApi.getAll({ store_id: store.id });
       setSelectedStore({ ...store, costs: costs.data });
       setStoreProducts(sps.data);
       setShowCostModal(true);
-    } catch (error) {
+    } catch {
       alert("Failed to load store details");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -124,69 +139,71 @@ const Marketplaces = () => {
       const resp = await pricingApi.calculate(spId);
       setPricingAnalysis(resp.data);
       setShowPricingModal(true);
-    } catch (error) {
+    } catch {
       alert("Pricing calculation failed");
     }
   };
 
   return (
-    <div className="animate-fade-in">
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <div>
-          <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <ShoppingBag color="#6366f1" />
-            Marketplaces & Stores
-          </h1>
-          <p style={{ color: '#94a3b8' }}>Konfigurasi biaya per toko dan kalkulasi pricing forward.</p>
-        </div>
-        <div style={{ display: 'flex', gap: '1rem' }}>
-          <button className="btn btn-secondary" onClick={async () => {
-            const name = prompt("Enter Marketplace Name (e.g. Shopee):");
-            if(name) {
-              await marketplacesApi.create({ id: name.toLowerCase(), name });
-              fetchBaseData();
-            }
-          }}>
-            <ShoppingBag size={18} /> Add Mktplace
-          </button>
-          <button className="btn btn-primary" onClick={() => setShowStoreModal(true)}>
-            <Plus size={18} /> Add Store
-          </button>
-        </div>
-      </header>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, min_max(300px, 1fr))', gap: '1.5rem' }}>
-        {stores.map(store => (
-          <motion.div key={store.id} className="glass-card" style={{ padding: '1.5rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-              <span className="badge badge-info">{store.marketplace_name}</span>
-              <button className="btn btn-danger" style={{ padding: '0.4rem' }} onClick={async () => {
-                if(window.confirm("Delete store?")) {
-                  await storesApi.delete(store.id);
-                  fetchBaseData();
-                }
-              }}><Trash2 size={14} /></button>
-            </div>
-            <h3 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Store size={20} color="#6366f1" />
-              {store.name}
-            </h3>
-            <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }} onClick={() => handleOpenStoreCosts(store)}>
-              <Settings2 size={16} /> Manage Pricing & Costs
-              <ChevronRight size={16} />
+    <>
+      <div className="animate-fade-in">
+        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+          <div>
+            <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <ShoppingBag color="#6366f1" />
+              Marketplaces & Stores
+            </h1>
+            <p style={{ color: '#94a3b8' }}>Konfigurasi biaya per toko dan kalkulasi pricing forward.</p>
+          </div>
+          <div style={{ display: 'flex', gap: '1rem' }}>
+            <button className="btn btn-secondary" onClick={async () => {
+              const name = prompt("Enter Marketplace Name (e.g. Shopee):");
+              if(name) {
+                await marketplacesApi.create({ id: name.toLowerCase(), name });
+                fetchBaseData();
+              }
+            }}>
+              <ShoppingBag size={18} /> Add Mktplace
             </button>
-          </motion.div>
-        ))}
+            <button className="btn btn-primary" onClick={() => setShowStoreModal(true)}>
+              <Plus size={18} /> Add Store
+            </button>
+          </div>
+        </header>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, min_max(300px, 1fr))', gap: '1.5rem' }}>
+          {stores.map(store => (
+            <motion.div key={store.id} className="glass-card" style={{ padding: '1.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                <span className="badge badge-info">{store.marketplace_name}</span>
+                <button className="btn btn-danger" style={{ padding: '0.4rem' }} onClick={async () => {
+                  if(window.confirm("Delete store?")) {
+                    await storesApi.delete(store.id);
+                    fetchBaseData();
+                  }
+                }}><Trash2 size={14} /></button>
+              </div>
+              <h3 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Store size={20} color="#6366f1" />
+                {store.name}
+              </h3>
+              <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }} onClick={() => handleOpenStoreCosts(store)}>
+                <Settings2 size={16} /> Manage Pricing & Costs
+                <ChevronRight size={16} />
+              </button>
+            </motion.div>
+          ))}
+        </div>
       </div>
 
       {/* Store Management Modal (Costs & Products) */}
       <AnimatePresence>
         {showCostModal && (
-          <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowCostModal(false)}
               style={{ position: 'absolute', inset: 0, background: 'rgba(0, 0, 0, 0.6)', backdropFilter: 'blur(4px)' }} />
             <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-              className="glass-card" style={{ position: 'relative', width: '100%', maxWidth: '1000px', maxHeight: '95vh', overflowY: 'auto', padding: '2.5rem', zIndex: 1001 }}>
+              className="glass-card" style={{ position: 'relative', width: '100%', maxWidth: '1000px', maxHeight: '95vh', overflowY: 'auto', padding: '2.5rem', zIndex: 10000 }}>
               
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                 <div>
@@ -302,11 +319,11 @@ const Marketplaces = () => {
       {/* Pricing Analysis Modal */}
       <AnimatePresence>
         {showPricingModal && pricingAnalysis && (
-          <div style={{ position: 'fixed', inset: 0, zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div style={{ position: 'fixed', inset: 0, zIndex: 11000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowPricingModal(false)}
               style={{ position: 'absolute', inset: 0, background: 'rgba(0, 0, 0, 0.8)', backdropFilter: 'blur(8px)' }} />
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-              className="glass-card" style={{ position: 'relative', width: '100%', maxWidth: '500px', padding: '2.5rem', zIndex: 1101, border: '1px solid rgba(99, 102, 241, 0.3)' }}>
+              className="glass-card" style={{ position: 'relative', width: '100%', maxWidth: '500px', padding: '2.5rem', zIndex: 11001, border: '1px solid rgba(99, 102, 241, 0.3)' }}>
               
               <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
                 <h2 style={{ color: '#6366f1', fontSize: '2rem', marginBottom: '0.5rem' }}>Pricing Analysis</h2>
@@ -355,11 +372,11 @@ const Marketplaces = () => {
       {/* Store Addition Modal */}
       <AnimatePresence>
         {showStoreModal && (
-          <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowStoreModal(false)}
               style={{ position: 'absolute', inset: 0, background: 'rgba(0, 0, 0, 0.6)', backdropFilter: 'blur(4px)' }} />
             <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-              className="glass-card" style={{ position: 'relative', width: '100%', maxWidth: '400px', padding: '2rem', zIndex: 1001 }}>
+              className="glass-card" style={{ position: 'relative', width: '100%', maxWidth: '400px', padding: '2rem', zIndex: 10000 }}>
               <h3 style={{ marginBottom: '1.5rem' }}>Add New Store</h3>
               <form onSubmit={async (e) => {
                 e.preventDefault();
@@ -368,7 +385,7 @@ const Marketplaces = () => {
                   fetchBaseData();
                   setShowStoreModal(false);
                   setStoreForm({ id: '', marketplace_id: '', name: '' });
-                } catch (error) { alert("Failed to add store"); }
+                } catch { alert("Failed to add store"); }
               }}>
                 <div className="form-group">
                   <label className="form-label">Store ID</label>
@@ -394,7 +411,7 @@ const Marketplaces = () => {
           </div>
         )}
       </AnimatePresence>
-    </div>
+    </>
   );
 };
 

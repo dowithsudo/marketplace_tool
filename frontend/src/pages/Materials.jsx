@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+// eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Plus, 
@@ -7,8 +8,7 @@ import {
   Trash2, 
   X, 
   Save,
-  Database,
-  Calculator
+  Database
 } from 'lucide-react';
 import { materialsApi } from '../api';
 
@@ -92,79 +92,81 @@ const Materials = () => {
   );
 
   return (
-    <div className="animate-fade-in">
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <div>
-          <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <Database color="#6366f1" />
-            Materials Repository
-          </h1>
-          <p style={{ color: '#94a3b8' }}>Global bahan baku yang digunakan di semua Bill of Materials (BOM).</p>
-        </div>
-        <button className="btn btn-primary" onClick={() => handleOpenModal()}>
-          <Plus size={18} /> Add Material
-        </button>
-      </header>
+    <>
+      <div className="animate-fade-in">
+        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+          <div>
+            <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <Database color="#6366f1" />
+              Materials Repository
+            </h1>
+            <p style={{ color: '#94a3b8' }}>Global bahan baku yang digunakan di semua Bill of Materials (BOM).</p>
+          </div>
+          <button className="btn btn-primary" onClick={() => handleOpenModal()}>
+            <Plus size={18} /> Add Material
+          </button>
+        </header>
 
-      <div className="glass-card" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
-        <div style={{ position: 'relative' }}>
-          <Search style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} size={18} />
-          <input 
-            type="text" 
-            className="form-control" 
-            placeholder="Search materials by name or ID..." 
-            style={{ paddingLeft: '3rem' }}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+        <div className="glass-card" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
+          <div style={{ position: 'relative' }}>
+            <Search style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} size={18} />
+            <input 
+              type="text" 
+              className="form-control" 
+              placeholder="Search materials by name or ID..." 
+              style={{ paddingLeft: '3rem' }}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
         </div>
-      </div>
 
-      <div className="table-container glass-card">
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Nama Bahan</th>
-              <th>Beli (Total)</th>
-              <th>Isi/Unit</th>
-              <th>Satuan</th>
-              <th>Hrg Satuan</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr><td colSpan="7" style={{ textAlign: 'center', padding: '3rem' }}>Loading materials...</td></tr>
-            ) : filteredMaterials.length === 0 ? (
-              <tr><td colSpan="7" style={{ textAlign: 'center', padding: '3rem' }}>No materials found.</td></tr>
-            ) : filteredMaterials.map(material => (
-              <tr key={material.id}>
-                <td style={{ fontWeight: '600', color: '#6366f1' }}>{material.id}</td>
-                <td style={{ fontWeight: '500' }}>{material.nama}</td>
-                <td>Rp {material.harga_total.toLocaleString()}</td>
-                <td>{material.jumlah_unit}</td>
-                <td><span className="badge badge-info">{material.satuan}</span></td>
-                <td style={{ fontWeight: '600' }}>Rp {material.harga_satuan.toLocaleString()}</td>
-                <td>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <button className="btn btn-secondary" style={{ padding: '0.5rem' }} onClick={() => handleOpenModal(material)}>
-                      <Edit2 size={16} />
-                    </button>
-                    <button className="btn btn-danger" style={{ padding: '0.5rem' }} onClick={() => handleDelete(material.id)}>
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </td>
+        <div className="table-container glass-card">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Nama Bahan</th>
+                <th>Beli (Total)</th>
+                <th>Isi/Unit</th>
+                <th>Satuan</th>
+                <th>Hrg Satuan</th>
+                <th>Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr><td colSpan="7" style={{ textAlign: 'center', padding: '3rem' }}>Loading materials...</td></tr>
+              ) : filteredMaterials.length === 0 ? (
+                <tr><td colSpan="7" style={{ textAlign: 'center', padding: '3rem' }}>No materials found.</td></tr>
+              ) : filteredMaterials.map(material => (
+                <tr key={material.id}>
+                  <td style={{ fontWeight: '600', color: '#6366f1' }}>{material.id}</td>
+                  <td style={{ fontWeight: '500' }}>{material.nama}</td>
+                  <td>Rp {material.harga_total.toLocaleString()}</td>
+                  <td>{material.jumlah_unit}</td>
+                  <td><span className="badge badge-info">{material.satuan}</span></td>
+                  <td style={{ fontWeight: '600' }}>Rp {material.harga_satuan.toLocaleString()}</td>
+                  <td>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button className="btn btn-secondary" style={{ padding: '0.5rem' }} onClick={() => handleOpenModal(material)}>
+                        <Edit2 size={16} />
+                      </button>
+                      <button className="btn btn-danger" style={{ padding: '0.5rem' }} onClick={() => handleDelete(material.id)}>
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <AnimatePresence>
         {showModal && (
-          <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
             <motion.div 
               initial={{ opacity: 0 }} 
               animate={{ opacity: 1 }} 
@@ -177,7 +179,7 @@ const Materials = () => {
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 20 }}
               className="glass-card" 
-              style={{ position: 'relative', width: '100%', maxWidth: '500px', padding: '2rem', zIndex: 1001 }}
+              style={{ position: 'relative', width: '100%', maxWidth: '500px', padding: '2rem', zIndex: 10000 }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                 <h3>{editingId ? 'Edit Material' : 'Add New Material'}</h3>
@@ -258,7 +260,7 @@ const Materials = () => {
           </div>
         )}
       </AnimatePresence>
-    </div>
+    </>
   );
 };
 

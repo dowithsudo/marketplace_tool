@@ -1,18 +1,16 @@
 import React, { useState, useEffect } from 'react';
+// eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   BarChart3, 
   TrendingUp, 
   AlertCircle, 
-  CheckCircle2, 
   Zap, 
   Target, 
   RefreshCw,
   Plus,
   Trash2,
-  Filter,
   ArrowRightLeft,
-  ChevronDown,
   Info
 } from 'lucide-react';
 import { storesApi, productsApi, adsApi, decisionApi, pricingApi } from '../api';
@@ -58,7 +56,7 @@ const AdsPerformance = () => {
       ]);
       setAdsData(adsResp.data);
       setDecision(decResp.data);
-    } catch (error) {
+    } catch {
       alert("Analysis failed. Make sure product is listed in that store.");
     } finally {
       setLoading(false);
@@ -76,7 +74,7 @@ const AdsPerformance = () => {
       setShowAddAdModal(false);
       handleAnalyze();
       setAdForm({ campaign: '', spend: '', gmv: '', orders: '' });
-    } catch (error) { alert("Failed to add ad record"); }
+    } catch { alert("Failed to add ad record"); }
   };
 
   const handleReversePricing = async (e) => {
@@ -88,7 +86,7 @@ const AdsPerformance = () => {
         ...reverseForm
       });
       setReverseResult(resp.data);
-    } catch (error) { alert("Reverse pricing failed"); }
+    } catch { alert("Reverse pricing failed"); }
   };
 
   const getGradeColor = (grade) => {
@@ -102,164 +100,166 @@ const AdsPerformance = () => {
   };
 
   return (
-    <div className="animate-fade-in">
-      <header style={{ marginBottom: '2.5rem' }}>
-        <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <BarChart3 color="#8b5cf6" />
-          Ads Analysis & Grading
-        </h1>
-        <p style={{ color: '#94a3b8' }}>Evaluasi performa iklan dan tentukan kelayakan scale-up produk.</p>
-      </header>
+    <>
+      <div className="animate-fade-in">
+        <header style={{ marginBottom: '2.5rem' }}>
+          <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <BarChart3 color="#8b5cf6" />
+            Ads Analysis & Grading
+          </h1>
+          <p style={{ color: '#94a3b8' }}>Evaluasi performa iklan dan tentukan kelayakan scale-up produk.</p>
+        </header>
 
-      <div className="glass-card" style={{ padding: '2rem', marginBottom: '2rem' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '1.5rem', alignItems: 'flex-end' }}>
-          <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label">Select Store</label>
-            <select className="form-control" value={selectedStoreId} onChange={(e) => setSelectedStoreId(e.target.value)}>
-              <option value="">Select a Store</option>
-              {stores.map(s => <option key={s.id} value={s.id}>{s.name} ({s.marketplace_name})</option>)}
-            </select>
+        <div className="glass-card" style={{ padding: '2rem', marginBottom: '2rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '1.5rem', alignItems: 'flex-end' }}>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">Select Store</label>
+              <select className="form-control" value={selectedStoreId} onChange={(e) => setSelectedStoreId(e.target.value)}>
+                <option value="">Select a Store</option>
+                {stores.map(s => <option key={s.id} value={s.id}>{s.name} ({s.marketplace_name})</option>)}
+              </select>
+            </div>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">Select Product</label>
+              <select className="form-control" value={selectedProductId} onChange={(e) => setSelectedProductId(e.target.value)}>
+                <option value="">Select a Product</option>
+                {products.map(p => <option key={p.id} value={p.id}>{p.nama}</option>)}
+              </select>
+            </div>
+            <button className="btn btn-primary" style={{ padding: '0.8rem 2rem' }} onClick={handleAnalyze} disabled={loading}>
+              {loading ? <RefreshCw className="animate-spin" /> : <Zap size={18} />} Analyze Viability
+            </button>
           </div>
-          <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label">Select Product</label>
-            <select className="form-control" value={selectedProductId} onChange={(e) => setSelectedProductId(e.target.value)}>
-              <option value="">Select a Product</option>
-              {products.map(p => <option key={p.id} value={p.id}>{p.nama}</option>)}
-            </select>
-          </div>
-          <button className="btn btn-primary" style={{ padding: '0.8rem 2rem' }} onClick={handleAnalyze} disabled={loading}>
-            {loading ? <RefreshCw className="animate-spin" /> : <Zap size={18} />} Analyze Viability
-          </button>
         </div>
-      </div>
 
-      {decision && (
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '2rem', marginBottom: '2rem' }}>
-            {/* Grading Card */}
-            <div className="glass-card" style={{ padding: '2rem', borderLeft: `8px solid ${getGradeColor(decision.grade)}` }}>
-              <div style={{ marginBottom: '1.5rem' }}>
-                <p className="metric-label">STATUS GRADING</p>
-                <h2 style={{ fontSize: '2.5rem', color: getGradeColor(decision.grade) }}>{decision.grade}</h2>
-                <p style={{ color: '#94a3b8', fontSize: '1rem', marginTop: '0.5rem' }}>{decision.grade_reason}</p>
-              </div>
-              
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem' }}>
-                <div>
-                  <p className="metric-label">MARGIN ORGANIK</p>
-                  <p style={{ fontWeight: '700', fontSize: '1.25rem' }}>{decision.margin_percent.toFixed(1)}%</p>
+        {decision && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '2rem', marginBottom: '2rem' }}>
+              {/* Grading Card */}
+              <div className="glass-card" style={{ padding: '2rem', borderLeft: `8px solid ${getGradeColor(decision.grade)}` }}>
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <p className="metric-label">STATUS GRADING</p>
+                  <h2 style={{ fontSize: '2.5rem', color: getGradeColor(decision.grade) }}>{decision.grade}</h2>
+                  <p style={{ color: '#94a3b8', fontSize: '1rem', marginTop: '0.5rem' }}>{decision.grade_reason}</p>
                 </div>
-                <div>
-                  <p className="metric-label">PROFIT/ORDER</p>
-                  <p style={{ fontWeight: '700', fontSize: '1.25rem', color: decision.profit_per_order >= 0 ? '#22c55e' : '#ef4444' }}>
-                    Rp {decision.profit_per_order.toLocaleString()}
-                  </p>
+                
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem' }}>
+                  <div>
+                    <p className="metric-label">MARGIN ORGANIK</p>
+                    <p style={{ fontWeight: '700', fontSize: '1.25rem' }}>{decision.margin_percent.toFixed(1)}%</p>
+                  </div>
+                  <div>
+                    <p className="metric-label">PROFIT/ORDER</p>
+                    <p style={{ fontWeight: '700', fontSize: '1.25rem', color: decision.profit_per_order >= 0 ? '#22c55e' : '#ef4444' }}>
+                      Rp {decision.profit_per_order.toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+
+                <div style={{ marginTop: '2.5rem', display: 'flex', gap: '1rem' }}>
+                  <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowReverseModal(true)}>
+                    <ArrowRightLeft size={16} /> Reverse Price
+                  </button>
+                  <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowAddAdModal(true)}>
+                    <Plus size={16} /> Add Ad Data
+                  </button>
                 </div>
               </div>
 
-              <div style={{ marginTop: '2.5rem', display: 'flex', gap: '1rem' }}>
-                <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowReverseModal(true)}>
-                  <ArrowRightLeft size={16} /> Reverse Price
-                </button>
-                <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowAddAdModal(true)}>
-                  <Plus size={16} /> Add Ad Data
-                </button>
+              {/* Alerts & Recommendations */}
+              <div className="glass-card" style={{ padding: '2rem' }}>
+                <h3 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <AlertCircle size={20} color="#f59e0b" />
+                  Alerts & Warnings
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {decision.alerts.map((alert, i) => (
+                    <div key={i} style={{ 
+                      padding: '1rem', 
+                      borderRadius: '12px', 
+                      background: alert.level === 'danger' ? 'rgba(239, 68, 68, 0.1)' : alert.level === 'warning' ? 'rgba(245,158,11,0.1)' : 'rgba(99,102,241,0.1)',
+                      border: `1px solid ${alert.level === 'danger' ? 'rgba(239, 68, 68, 0.2)' : alert.level === 'warning' ? 'rgba(245,158,11,0.2)' : 'rgba(99,102,241,0.2)'}`,
+                      color: alert.level === 'danger' ? '#f87171' : alert.level === 'warning' ? '#fbbf24' : '#818cf8',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem'
+                    }}>
+                      {alert.level === 'danger' ? <TrendingUp size={18} style={{ transform: 'rotate(180deg)' }} /> : <Info size={18} />}
+                      <p style={{ fontSize: '0.95rem', fontWeight: '500' }}>{alert.message}</p>
+                    </div>
+                  ))}
+                  {decision.alerts.length === 0 && <p style={{ color: '#94a3b8', textAlign: 'center', padding: '2rem' }}>Semua indikator sehat. Produk siap scale-up.</p>}
+                </div>
+                
+                <div style={{ marginTop: '2rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div className="glass-card" style={{ padding: '1rem', textAlign: 'center' }}>
+                    <p className="metric-label">BREAK-EVEN ROAS</p>
+                    <p style={{ fontSize: '1.5rem', fontWeight: '700' }}>{decision.break_even_roas}x</p>
+                  </div>
+                  <div className="glass-card" style={{ padding: '1rem', textAlign: 'center' }}>
+                    <p className="metric-label">MAX CPA PER ORDER</p>
+                    <p style={{ fontSize: '1.5rem', fontWeight: '700' }}>Rp {decision.max_cpa.toLocaleString()}</p>
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Alerts & Recommendations */}
+            {/* Ad Campaign Table */}
             <div className="glass-card" style={{ padding: '2rem' }}>
               <h3 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <AlertCircle size={20} color="#f59e0b" />
-                Alerts & Warnings
+                <Target size={20} color="#6366f1" />
+                Ad Performance Breakdown
               </h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {decision.alerts.map((alert, i) => (
-                  <div key={i} style={{ 
-                    padding: '1rem', 
-                    borderRadius: '12px', 
-                    background: alert.level === 'danger' ? 'rgba(239, 68, 68, 0.1)' : alert.level === 'warning' ? 'rgba(245,158,11,0.1)' : 'rgba(99,102,241,0.1)',
-                    border: `1px solid ${alert.level === 'danger' ? 'rgba(239, 68, 68, 0.2)' : alert.level === 'warning' ? 'rgba(245,158,11,0.2)' : 'rgba(99,102,241,0.2)'}`,
-                    color: alert.level === 'danger' ? '#f87171' : alert.level === 'warning' ? '#fbbf24' : '#818cf8',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.75rem'
-                  }}>
-                    {alert.level === 'danger' ? <TrendingUp size={18} style={{ transform: 'rotate(180deg)' }} /> : <Info size={18} />}
-                    <p style={{ fontSize: '0.95rem', fontWeight: '500' }}>{alert.message}</p>
-                  </div>
-                ))}
-                {decision.alerts.length === 0 && <p style={{ color: '#94a3b8', textAlign: 'center', padding: '2rem' }}>Semua indikator sehat. Produk siap scale-up.</p>}
-              </div>
-              
-              <div style={{ marginTop: '2rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div className="glass-card" style={{ padding: '1rem', textAlign: 'center' }}>
-                  <p className="metric-label">BREAK-EVEN ROAS</p>
-                  <p style={{ fontSize: '1.5rem', fontWeight: '700' }}>{decision.break_even_roas}x</p>
-                </div>
-                <div className="glass-card" style={{ padding: '1rem', textAlign: 'center' }}>
-                  <p className="metric-label">MAX CPA PER ORDER</p>
-                  <p style={{ fontSize: '1.5rem', fontWeight: '700' }}>Rp {decision.max_cpa.toLocaleString()}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Ad Campaign Table */}
-          <div className="glass-card" style={{ padding: '2rem' }}>
-            <h3 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Target size={20} color="#6366f1" />
-              Ad Performance Breakdown
-            </h3>
-            <div className="table-container">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Campaign</th>
-                    <th>Spend</th>
-                    <th>GMV</th>
-                    <th>Orders</th>
-                    <th>ROAS</th>
-                    <th>CPA</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {adsData.map(ad => (
-                    <tr key={ad.id}>
-                      <td style={{ fontWeight: '500' }}>{ad.campaign || '-'}</td>
-                      <td>Rp {ad.spend.toLocaleString()}</td>
-                      <td>Rp {ad.gmv.toLocaleString()}</td>
-                      <td>{ad.orders}</td>
-                      <td>
-                        <span style={{ fontWeight: '700', color: ad.roas >= decision.break_even_roas ? '#22c55e' : '#ef4444' }}>
-                          {ad.roas}x
-                        </span>
-                      </td>
-                      <td>Rp {ad.cpa.toLocaleString()}</td>
-                      <td>
-                        <button onClick={async () => { if(window.confirm("Delete record?")) { await adsApi.delete(ad.id); handleAnalyze(); } }} className="btn btn-danger" style={{ padding: '0.4rem' }}>
-                          <Trash2 size={14} />
-                        </button>
-                      </td>
+              <div className="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Campaign</th>
+                      <th>Spend</th>
+                      <th>GMV</th>
+                      <th>Orders</th>
+                      <th>ROAS</th>
+                      <th>CPA</th>
+                      <th>Action</th>
                     </tr>
-                  ))}
-                  {adsData.length === 0 && <tr><td colSpan="7" style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>Belum ada data iklan untuk produk ini.</td></tr>}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {adsData.map(ad => (
+                      <tr key={ad.id}>
+                        <td style={{ fontWeight: '500' }}>{ad.campaign || '-'}</td>
+                        <td>Rp {ad.spend.toLocaleString()}</td>
+                        <td>Rp {ad.gmv.toLocaleString()}</td>
+                        <td>{ad.orders}</td>
+                        <td>
+                          <span style={{ fontWeight: '700', color: ad.roas >= decision.break_even_roas ? '#22c55e' : '#ef4444' }}>
+                            {ad.roas}x
+                          </span>
+                        </td>
+                        <td>Rp {ad.cpa.toLocaleString()}</td>
+                        <td>
+                          <button onClick={async () => { if(window.confirm("Delete record?")) { await adsApi.delete(ad.id); handleAnalyze(); } }} className="btn btn-danger" style={{ padding: '0.4rem' }}>
+                            <Trash2 size={14} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {adsData.length === 0 && <tr><td colSpan="7" style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>Belum ada data iklan untuk produk ini.</td></tr>}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
-        </motion.div>
-      )}
+          </motion.div>
+        )}
+      </div>
 
       {/* Reverse Pricing Modal */}
       <AnimatePresence>
         {showReverseModal && (
-          <div style={{ position: 'fixed', inset: 0, zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowReverseModal(false)}
               style={{ position: 'absolute', inset: 0, background: 'rgba(0, 0, 0, 0.8)', backdropFilter: 'blur(8px)' }} />
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-              className="glass-card" style={{ position: 'relative', width: '100%', maxWidth: '900px', display: 'grid', gridTemplateColumns: '1fr 1fr', padding: '0', overflow: 'hidden', zIndex: 1101 }}>
+              className="glass-card" style={{ position: 'relative', width: '100%', maxWidth: '900px', display: 'grid', gridTemplateColumns: '1fr 1fr', padding: '0', overflow: 'hidden', zIndex: 11000 }}>
               
               <div style={{ padding: '2.5rem' }}>
                 <h2 style={{ marginBottom: '0.5rem' }}>Reverse Pricing</h2>
@@ -328,11 +328,11 @@ const AdsPerformance = () => {
       {/* Add Ad Modal */}
       <AnimatePresence>
         {showAddAdModal && (
-          <div style={{ position: 'fixed', inset: 0, zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowAddAdModal(false)}
               style={{ position: 'absolute', inset: 0, background: 'rgba(0, 0, 0, 0.6)', backdropFilter: 'blur(4px)' }} />
             <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-              className="glass-card" style={{ position: 'relative', width: '100%', maxWidth: '400px', padding: '2rem', zIndex: 1101 }}>
+              className="glass-card" style={{ position: 'relative', width: '100%', maxWidth: '400px', padding: '2rem', zIndex: 10000 }}>
               <h3 style={{ marginBottom: '1.5rem' }}>Add Ad Performance Record</h3>
               <form onSubmit={handleAddAd}>
                 <div className="form-group">
@@ -360,7 +360,7 @@ const AdsPerformance = () => {
           </div>
         )}
       </AnimatePresence>
-    </div>
+    </>
   );
 };
 

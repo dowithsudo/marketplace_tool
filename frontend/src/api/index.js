@@ -29,6 +29,11 @@ export const authApi = {
   forgotPassword: (email) => api.post("/auth/forgot-password", { email }),
   resetPassword: (token, newPassword) =>
     api.post("/auth/reset-password", { token, new_password: newPassword }),
+  changePassword: (oldPassword, newPassword) =>
+    api.post("/auth/change-password", {
+      old_password: oldPassword,
+      new_password: newPassword,
+    }),
 };
 
 export const materialsApi = {
