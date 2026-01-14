@@ -1,15 +1,18 @@
 """
 Database configuration for SQLite
 """
+import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-DATABASE_URL = "sqlite:///./marketplace.db"
+# Default to SQLite if no env var is provided
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./marketplace.db")
 
-engine = create_engine(
-    DATABASE_URL, 
-    connect_args={"check_same_thread": False}
-)
+# Only need check_same_thread for SQLite
+if DATABASE_URL.startswith("sqlite"):
+    engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+else:
+    engine = create_engine(DATABASE_URL)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

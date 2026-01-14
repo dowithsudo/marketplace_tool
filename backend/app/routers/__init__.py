@@ -1,6 +1,7 @@
 """
 API Routers
 """
+from .auth import router as auth_router
 from .materials import router as materials_router
 from .products import router as products_router
 from .bom import router as bom_router
@@ -16,6 +17,7 @@ from .ads import router as ads_router
 from .decision import router as decision_router
 
 __all__ = [
+    "auth_router",
     "materials_router",
     "products_router",
     "bom_router",

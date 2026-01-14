@@ -14,6 +14,7 @@ from .ad import AdCreate, AdUpdate, AdResponse
 from .pricing import PricingCalcRequest, PricingCalcResponse, ReversePricingRequest, ReversePricingResponse
 from .hpp import HPPResponse
 from .decision import DecisionResponse
+from .user import User, UserCreate, Token, TokenData, ForgotPasswordRequest, ResetPasswordRequest
 
 __all__ = [
     "MaterialCreate", "MaterialUpdate", "MaterialResponse",
@@ -28,5 +29,7 @@ __all__ = [
     "AdCreate", "AdUpdate", "AdResponse",
     "PricingCalcRequest", "PricingCalcResponse", "ReversePricingRequest", "ReversePricingResponse",
     "HPPResponse",
-    "DecisionResponse"
+    "DecisionResponse",
+    "User", "UserCreate", "Token", "TokenData",
+    "ForgotPasswordRequest", "ResetPasswordRequest"
 ]

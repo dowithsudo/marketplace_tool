@@ -1,7 +1,4 @@
-"""
-Product Model - Produk dengan biaya tambahan
-"""
-from sqlalchemy import Column, String, Integer
+from sqlalchemy import Column, String, Integer, ForeignKey
 from sqlalchemy.orm import relationship
 from ..database import Base
 
@@ -10,10 +7,12 @@ class Product(Base):
     __tablename__ = "products"
 
     id = Column(String, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
     nama = Column(String, nullable=False)
-    biaya_lain = Column(Integer, default=0)  # Biaya produksi tambahan per produk
+    biaya_lain = Column(Integer, default=0)
 
     # Relationships
-    bom_items = relationship("BOM", back_populates="product", cascade="all, delete-orphan")
-    store_products = relationship("StoreProduct", back_populates="product", cascade="all, delete-orphan")
-    ads = relationship("Ad", back_populates="product", cascade="all, delete-orphan")
+    user = relationship("User", back_populates="products")
+    bom_items = relationship("BOM", back_populates="product", cascade="all, delete-orphan", overlaps="bom_items")
+    store_products = relationship("StoreProduct", back_populates="product", cascade="all, delete-orphan", overlaps="store_products")
+    ads = relationship("Ad", back_populates="product", cascade="all, delete-orphan", overlaps="ads")

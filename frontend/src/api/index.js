@@ -1,11 +1,35 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "http://localhost:8000",
+  baseURL: import.meta.env.VITE_API_URL || "/api",
   headers: {
     "Content-Type": "application/json",
   },
 });
+
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+export const authApi = {
+  login: (email, password) => {
+    const formData = new FormData();
+    formData.append("username", email);
+    formData.append("password", password);
+    return api.post("/auth/token", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+  register: (data) => api.post("/auth/register", data),
+  me: () => api.get("/auth/me"),
+  forgotPassword: (email) => api.post("/auth/forgot-password", { email }),
+  resetPassword: (token, newPassword) =>
+    api.post("/auth/reset-password", { token, new_password: newPassword }),
+};
 
 export const materialsApi = {
   getAll: () => api.get("/materials"),

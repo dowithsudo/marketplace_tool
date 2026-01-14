@@ -1,0 +1,40 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: marttool-db
+    restart: always
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-user_marttool}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-password_marttool}
+      - POSTGRES_DB=${POSTGRES_DB:-marketplace_db}
+    volumes:
+      - marttool_db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  backend:
+    build: ./backend
+    container_name: marttool-backend
+    restart: always
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-user_marttool}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-password_marttool}
+      - POSTGRES_DB=${POSTGRES_DB:-marketplace_db}
+      - DATABASE_URL=${DATABASE_URL:-postgresql://user_marttool:password_marttool@db:5432/marketplace_db}
+      - SECRET_KEY=${SECRET_KEY:-super-secret-key-change-me-later}
+    depends_on:
+      - db
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build: ./frontend
+    container_name: marttool-web
+    restart: always
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+
+volumes:
+  marttool_db_data:

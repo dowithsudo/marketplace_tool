@@ -1,6 +1,7 @@
 """
 SQLAlchemy Models
 """
+from .user import User
 from .material import Material
 from .product import Product
 from .bom import BOM
@@ -13,6 +14,7 @@ from .store_marketplace_cost import StoreMarketplaceCost
 from .ad import Ad
 
 __all__ = [
+    "User",
     "Material",
     "Product", 
     "BOM",

@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .database import Base, engine
 from .routers import (
+    auth_router,
     materials_router,
     products_router,
     bom_router,
@@ -28,19 +29,26 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI(
     title="Marketplace Tool API",
     description="API untuk HPP, Pricing, Ads Analysis, Reverse Pricing, dan Grading",
-    version="1.0.0"
+    version="1.0.0",
+    root_path="/api"
 )
 
 # CORS middleware for frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=[
+        "http://localhost",
+        "http://localhost:80",
+        "http://localhost:5173",
+        "http://localhost:3000",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # Register routers
+app.include_router(auth_router)
 app.include_router(materials_router)
 app.include_router(products_router)
 app.include_router(bom_router)

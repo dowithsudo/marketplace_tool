@@ -1,20 +1,46 @@
-# Marketplace Tool
-
-Aplikasi lokal untuk kebutuhan pribadi: HPP, Pricing, Ads Analysis, Reverse Pricing, dan Grading.
-
 ## Arsitektur
 
-- **Backend**: Python + FastAPI + SQLite
-- **Frontend**: React
-- **Database**: SQLite (file lokal: `marketplace.db`)
+- **Backend**: Python + FastAPI
+- **Frontend**: React (Vite)
+- **Database**: PostgreSQL (Docker) atau SQLite (Lokal)
+- **Deployment**: Docker Compose
 
-## Setup Backend
+## Setup Docker (Rekomendasi)
 
+Ini adalah cara termudah untuk menjalankan aplikasi secara lokal dengan database yang persisten.
+
+```bash
+# Jalankan aplikasi (Backend, Frontend, & Database)
+docker-compose up -d --build
+```
+
+Aplikasi akan berjalan di: **http://localhost:8080**
+
+### Seeding Data (Docker)
+Untuk mengisi database dengan data contoh:
+```bash
+docker exec -it marttool-backend python seed_db.py
+```
+Default Login: `admin@example.com` / `admin123`
+
+### Menghentikan Aplikasi
+Jika Anda ingin menghentikan aplikasi agar tidak memakan sumber daya atau bentrok dengan port project lain:
+```bash
+# Menghentikan kontainer tanpa menghapus data
+docker-compose stop
+
+# Menghentikan dan menghapus kontainer (data DB tetap aman di volume)
+docker-compose down
+```
+
+## Setup Manual (Development)
+
+### Setup Backend
 ```bash
 # Aktifkan virtual environment
 source venv/bin/activate
 
-# Install dependencies (sudah dilakukan)
+# Install dependencies
 pip install -r backend/requirements.txt
 
 # Jalankan server
@@ -22,20 +48,15 @@ cd backend
 python run.py
 ```
 
-Backend akan berjalan di: http://localhost:8000
-API Docs: http://localhost:8000/docs
-
-## Setup Frontend
-
+### Setup Frontend
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-Frontend akan berjalan di: http://localhost:5173
-
 ## Fitur
+... (seperti sebelumnya)
 
 ### FASE 1 ✓
 - CRUD Materials (bahan baku)
