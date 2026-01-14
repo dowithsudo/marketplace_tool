@@ -1,0 +1,79 @@
+"""
+HPP (Harga Pokok Penjualan) Service
+Handles cost of goods sold calculations
+"""
+from sqlalchemy.orm import Session
+from typing import Optional
+from ..models import Product, BOM, Material
+from ..schemas.hpp import HPPResponse, BOMDetail
+
+
+class HPPService:
+    """Service untuk menghitung HPP produk"""
+    
+    @staticmethod
+    def calculate_hpp(db: Session, product_id: str) -> Optional[HPPResponse]:
+        """
+        Menghitung HPP untuk produk tertentu
+        
+        HPP = total_bahan + biaya_lain
+        total_bahan = sum(qty * harga_satuan untuk setiap bahan dalam BOM)
+        
+        Args:
+            db: Database session
+            product_id: ID produk
+            
+        Returns:
+            HPPResponse atau None jika produk tidak ditemukan
+        """
+        # Get product
+        product = db.query(Product).filter(Product.id == product_id).first()
+        if not product:
+            return None
+        
+        # Get BOM items with materials
+        bom_items = db.query(BOM).filter(BOM.product_id == product_id).all()
+        
+        bom_details = []
+        total_bahan = 0.0
+        
+        for bom in bom_items:
+            material = db.query(Material).filter(Material.id == bom.material_id).first()
+            if material:
+                biaya_bahan = bom.qty * material.harga_satuan
+                total_bahan += biaya_bahan
+                
+                bom_details.append(BOMDetail(
+                    material_id=material.id,
+                    material_nama=material.nama,
+                    material_satuan=material.satuan,
+                    qty=bom.qty,
+                    harga_satuan=material.harga_satuan,
+                    biaya_bahan=biaya_bahan
+                ))
+        
+        hpp = total_bahan + product.biaya_lain
+        
+        return HPPResponse(
+            product_id=product.id,
+            product_nama=product.nama,
+            bom_details=bom_details,
+            total_bahan=total_bahan,
+            biaya_lain=product.biaya_lain,
+            hpp=hpp
+        )
+    
+    @staticmethod
+    def get_hpp_value(db: Session, product_id: str) -> float:
+        """
+        Get simple HPP value (number only)
+        
+        Args:
+            db: Database session
+            product_id: ID produk
+            
+        Returns:
+            HPP value or 0 if product not found
+        """
+        result = HPPService.calculate_hpp(db, product_id)
+        return result.hpp if result else 0

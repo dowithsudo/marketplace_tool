@@ -1,0 +1,91 @@
+"""
+MarketplaceCostTypes Router - CRUD operations for cost type definitions
+"""
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+from typing import List
+
+from ..database import get_db
+from ..models import MarketplaceCostType
+from ..schemas.marketplace_cost_type import MarketplaceCostTypeCreate, MarketplaceCostTypeUpdate, MarketplaceCostTypeResponse
+
+router = APIRouter(prefix="/marketplace-cost-types", tags=["Marketplace Cost Types"])
+
+
+@router.post("", response_model=MarketplaceCostTypeResponse, status_code=status.HTTP_201_CREATED)
+def create_cost_type(cost_type: MarketplaceCostTypeCreate, db: Session = Depends(get_db)):
+    """Create a new marketplace cost type"""
+    existing = db.query(MarketplaceCostType).filter(MarketplaceCostType.id == cost_type.id).first()
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cost type dengan ID '{cost_type.id}' sudah ada"
+        )
+    
+    db_cost_type = MarketplaceCostType(
+        id=cost_type.id,
+        name=cost_type.name,
+        calc_type=cost_type.calc_type,
+        apply_to=cost_type.apply_to
+    )
+    
+    db.add(db_cost_type)
+    db.commit()
+    db.refresh(db_cost_type)
+    
+    return db_cost_type
+
+
+@router.get("", response_model=List[MarketplaceCostTypeResponse])
+def get_cost_types(db: Session = Depends(get_db)):
+    """Get all marketplace cost types"""
+    return db.query(MarketplaceCostType).all()
+
+
+@router.get("/{cost_type_id}", response_model=MarketplaceCostTypeResponse)
+def get_cost_type(cost_type_id: str, db: Session = Depends(get_db)):
+    """Get a specific cost type by ID"""
+    cost_type = db.query(MarketplaceCostType).filter(MarketplaceCostType.id == cost_type_id).first()
+    if not cost_type:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Cost type dengan ID '{cost_type_id}' tidak ditemukan"
+        )
+    return cost_type
+
+
+@router.put("/{cost_type_id}", response_model=MarketplaceCostTypeResponse)
+def update_cost_type(cost_type_id: str, cost_type: MarketplaceCostTypeUpdate, db: Session = Depends(get_db)):
+    """Update a cost type"""
+    db_cost_type = db.query(MarketplaceCostType).filter(MarketplaceCostType.id == cost_type_id).first()
+    if not db_cost_type:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Cost type dengan ID '{cost_type_id}' tidak ditemukan"
+        )
+    
+    if cost_type.name is not None:
+        db_cost_type.name = cost_type.name
+    if cost_type.calc_type is not None:
+        db_cost_type.calc_type = cost_type.calc_type
+    if cost_type.apply_to is not None:
+        db_cost_type.apply_to = cost_type.apply_to
+    
+    db.commit()
+    db.refresh(db_cost_type)
+    
+    return db_cost_type
+
+
+@router.delete("/{cost_type_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_cost_type(cost_type_id: str, db: Session = Depends(get_db)):
+    """Delete a cost type (cascades to store costs)"""
+    db_cost_type = db.query(MarketplaceCostType).filter(MarketplaceCostType.id == cost_type_id).first()
+    if not db_cost_type:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Cost type dengan ID '{cost_type_id}' tidak ditemukan"
+        )
+    
+    db.delete(db_cost_type)
+    db.commit()

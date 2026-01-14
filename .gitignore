@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+.env
+build/
+dist/
+
+# SQLite
+*.db
+*.sqlite3
+
+# Node / React
+node_modules/
+frontend/dist/
+.eslintcache
+
+# IDEs
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
