@@ -36,18 +36,16 @@ def seed():
         # 2. Seed Data if empty
         if db.query(models.Material).filter(models.Material.user_id == user.id).count() == 0:
             print("Seeding Marketplace Cost Types...")
-            # We use distinct objects to ensure they are added correctly
-            ct1 = models.MarketplaceCostType(id="fee-admin", name="Admin Fee (Percent of Price)", calc_type="percent", apply_to="price", user_id=user.id)
-            ct2 = models.MarketplaceCostType(id="fee-layanan", name="Service Fee (Percent of After Disc)", calc_type="percent", apply_to="after_discount", user_id=user.id)
-            ct3 = models.MarketplaceCostType(id="packing", name="Packing Cost (Fixed)", calc_type="fixed", apply_to="after_discount", user_id=user.id)
+            ct1 = models.MarketplaceCostType(id="fee-admin", name="Biaya Admin", calc_type="percent", apply_to="price", user_id=user.id)
+            ct2 = models.MarketplaceCostType(id="fee-layanan", name="Biaya Layanan", calc_type="fixed", apply_to="after_discount", user_id=user.id)
             
-            # Check if they exist first to avoid integrity errors if block logic is partially executed
-            for ct in [ct1, ct2, ct3]:
+            for ct in [ct1, ct2]:
                 existing = db.query(models.MarketplaceCostType).filter_by(id=ct.id, user_id=user.id).first()
                 if not existing:
                     db.add(ct)
                 else:
-                    print(f"Cost group {ct.id} already exists, skipping.")
+                    # Update name if it already exists but with old name
+                    existing.name = ct.name
             db.commit()
 
             print("Seeding Marketplaces...")
@@ -74,10 +72,9 @@ def seed():
                     db.add(m)
             db.commit()
 
-            print("Seeding Products...")
             products_data = [
-                {"id": "kemeja-01", "nama": "Kemeja Flanel Slim", "biaya_lain": 15000},
-                {"id": "kaos-01", "nama": "Kaos Polos Cotton Combed", "biaya_lain": 5000}
+                {"id": "kemeja-01", "nama": "Kemeja Flanel Slim"},
+                {"id": "kaos-01", "nama": "Kaos Polos Cotton Combed"}
             ]
             for p_data in products_data:
                 if not db.query(models.Product).filter_by(id=p_data["id"], user_id=user.id).first():
@@ -103,12 +100,7 @@ def seed():
                 db.add(store)
                 db.commit()
                 
-                print("Adding Store Costs & Listing Product...")
-                # Add Costs
-                if not db.query(models.StoreMarketplaceCost).filter_by(store_id="hikmah-shopee", cost_type_id="fee-admin", user_id=user.id).first():
-                    db.add(models.StoreMarketplaceCost(store_id="hikmah-shopee", cost_type_id="fee-admin", value=0.05, user_id=user.id))
-                if not db.query(models.StoreMarketplaceCost).filter_by(store_id="hikmah-shopee", cost_type_id="packing", user_id=user.id).first():
-                    db.add(models.StoreMarketplaceCost(store_id="hikmah-shopee", cost_type_id="packing", value=2000, user_id=user.id))
+                print("Listing Product...")
                 # List Product
                 if not db.query(models.StoreProduct).filter_by(store_id="hikmah-shopee", product_id="kemeja-01", user_id=user.id).first():
                     db.add(models.StoreProduct(store_id="hikmah-shopee", product_id="kemeja-01", harga_jual=120000, user_id=user.id))

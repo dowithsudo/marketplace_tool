@@ -12,17 +12,20 @@ import {
   ChevronRight,
   Calculator,
   Percent,
-  Tag
+  Tag,
+  Edit2,
+  Undo2
 } from 'lucide-react';
 import { 
   marketplacesApi, 
   storesApi, 
   marketplaceCostTypesApi, 
-  storeMarketplaceCostsApi,
+  storeProductMarketplaceCostsApi,
   productsApi,
   storeProductsApi,
   pricingApi
 } from '../api';
+import { formatCurrency, formatNumber, formatRawPercent, formatDecimalPercent } from '../utils/formatters';
 
 const Marketplaces = () => {
   const [marketplaces, setMarketplaces] = useState([]);
@@ -34,17 +37,25 @@ const Marketplaces = () => {
   const [showStoreModal, setShowStoreModal] = useState(false);
   const [showCostModal, setShowCostModal] = useState(false);
   const [showPricingModal, setShowPricingModal] = useState(false);
+  const [showTypeManager, setShowTypeManager] = useState(false);
+  const [showCostTypeModal, setShowCostTypeModal] = useState(false);
+  const [showMarketplaceModal, setShowMarketplaceModal] = useState(false);
   
   const [selectedStore, setSelectedStore] = useState(null);
+  const [selectedStoreProduct, setSelectedStoreProduct] = useState(null);
+  const [spCosts, setSpCosts] = useState([]);
   
   // Forms state
   const [storeForm, setStoreForm] = useState({ id: '', marketplace_id: '', name: '' });
+  const [marketplaceForm, setMarketplaceForm] = useState({ id: '', name: '' });
+  const [costTypeForm, setCostTypeForm] = useState({ name: '', calc_type: 'percent' });
   const [costForm, setCostForm] = useState({ cost_type_id: '', value: '' });
   const [pricingForm, setPricingForm] = useState({ product_id: '', harga_jual: '' });
   
   // Active store products and analysis
   const [storeProducts, setStoreProducts] = useState([]);
   const [pricingAnalysis, setPricingAnalysis] = useState(null);
+  const [editingSpId, setEditingSpId] = useState(null);
 
   const fetchBaseData = async () => {
     try {
@@ -93,44 +104,67 @@ const Marketplaces = () => {
 
   const handleOpenStoreCosts = async (store) => {
     setSelectedStore(store);
+    setSelectedStoreProduct(null);
+    setSpCosts([]);
     try {
-      const costs = await storeMarketplaceCostsApi.getAll(store.id);
       const sps = await storeProductsApi.getAll({ store_id: store.id });
-      setSelectedStore({ ...store, costs: costs.data });
       setStoreProducts(sps.data);
       setShowCostModal(true);
     } catch {
-      alert("Failed to load store details");
+      alert("Gagal memuat detail toko");
+    }
+  };
+
+  const handleSelectStoreProduct = async (sp) => {
+    setSelectedStoreProduct(sp);
+    try {
+      const costs = await storeProductMarketplaceCostsApi.getAll(sp.id);
+      setSpCosts(costs.data);
+    } catch {
+      alert("Gagal memuat biaya produk");
     }
   };
 
   const handleAddCost = async (e) => {
     e.preventDefault();
+    if (!selectedStoreProduct) {
+      alert("Mohon pilih produk terlebih dahulu");
+      return;
+    }
     try {
-      await storeMarketplaceCostsApi.create({
-        store_id: selectedStore.id,
+      await storeProductMarketplaceCostsApi.create({
+        store_product_id: selectedStoreProduct.id,
         ...costForm
       });
-      const costs = await storeMarketplaceCostsApi.getAll(selectedStore.id);
-      setSelectedStore({ ...selectedStore, costs: costs.data });
+      const costs = await storeProductMarketplaceCostsApi.getAll(selectedStoreProduct.id);
+      setSpCosts(costs.data);
       setCostForm({ cost_type_id: '', value: '' });
     } catch (error) {
-      alert(error.response?.data?.detail || "Failed to add cost");
+      alert(error.response?.data?.detail || "Gagal menambah biaya");
     }
   };
 
   const handleAddStoreProduct = async (e) => {
     e.preventDefault();
     try {
-      await storeProductsApi.create({
-        store_id: selectedStore.id,
-        ...pricingForm
-      });
+      if (editingSpId) {
+        await storeProductsApi.update(editingSpId, {
+          store_id: selectedStore.id,
+          ...pricingForm
+        });
+      } else {
+        await storeProductsApi.create({
+          store_id: selectedStore.id,
+          ...pricingForm
+        });
+      }
+      
       const sps = await storeProductsApi.getAll({ store_id: selectedStore.id });
       setStoreProducts(sps.data);
       setPricingForm({ product_id: '', harga_jual: '' });
+      setEditingSpId(null);
     } catch (error) {
-      alert(error.response?.data?.detail || "Failed to add product pricing");
+      alert(error.response?.data?.detail || "Gagal menyimpan harga produk");
     }
   };
 
@@ -140,7 +174,40 @@ const Marketplaces = () => {
       setPricingAnalysis(resp.data);
       setShowPricingModal(true);
     } catch {
-      alert("Pricing calculation failed");
+      alert("Kalkulasi harga gagal");
+    }
+  };
+
+  const handleMarketplaceSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      // Auto-generate ID if empty from name
+      const id = marketplaceForm.id || marketplaceForm.name.toLowerCase().replace(/\s+/g, '-');
+      await marketplacesApi.create({ id, name: marketplaceForm.name });
+      fetchBaseData();
+      setShowMarketplaceModal(false);
+      setMarketplaceForm({ id: '', name: '' });
+      setMarketplaceForm({ id: '', name: '' });
+    } catch {
+      alert("Gagal menambah marketplace");
+    }
+  };
+
+  const handleCostTypeSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await marketplaceCostTypesApi.create({
+        id: costTypeForm.name.toLowerCase().replace(/\s+/g, '-'),
+        name: costTypeForm.name,
+        calc_type: costTypeForm.calc_type,
+        apply_to: 'price'
+      });
+      const ctypes = await marketplaceCostTypesApi.getAll();
+      setCostTypes(ctypes.data);
+      setShowCostTypeModal(false);
+      setCostTypeForm({ name: '', calc_type: 'percent' });
+    } catch (err) {
+      alert(err.response?.data?.detail || "Gagal membuat tipe biaya");
     }
   };
 
@@ -151,22 +218,16 @@ const Marketplaces = () => {
           <div>
             <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               <ShoppingBag color="#6366f1" />
-              Marketplaces & Stores
+              Marketplace & Toko
             </h1>
             <p style={{ color: '#94a3b8' }}>Konfigurasi biaya per toko dan kalkulasi pricing forward.</p>
           </div>
           <div style={{ display: 'flex', gap: '1rem' }}>
-            <button className="btn btn-secondary" onClick={async () => {
-              const name = prompt("Enter Marketplace Name (e.g. Shopee):");
-              if(name) {
-                await marketplacesApi.create({ id: name.toLowerCase(), name });
-                fetchBaseData();
-              }
-            }}>
-              <ShoppingBag size={18} /> Add Mktplace
+            <button className="btn btn-secondary" onClick={() => setShowMarketplaceModal(true)}>
+              <ShoppingBag size={18} /> Tambah Marketplace
             </button>
             <button className="btn btn-primary" onClick={() => setShowStoreModal(true)}>
-              <Plus size={18} /> Add Store
+              <Plus size={18} /> Tambah Toko
             </button>
           </div>
         </header>
@@ -177,7 +238,7 @@ const Marketplaces = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
                 <span className="badge badge-info">{store.marketplace_name}</span>
                 <button className="btn btn-danger" style={{ padding: '0.4rem' }} onClick={async () => {
-                  if(window.confirm("Delete store?")) {
+                  if(window.confirm("Hapus toko?")) {
                     await storesApi.delete(store.id);
                     fetchBaseData();
                   }
@@ -188,7 +249,7 @@ const Marketplaces = () => {
                 {store.name}
               </h3>
               <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }} onClick={() => handleOpenStoreCosts(store)}>
-                <Settings2 size={16} /> Manage Pricing & Costs
+                <Settings2 size={16} /> Kelola Harga & Biaya
                 <ChevronRight size={16} />
               </button>
             </motion.div>
@@ -208,28 +269,37 @@ const Marketplaces = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                 <div>
                   <h2 style={{ fontSize: '1.75rem' }}>{selectedStore?.name}</h2>
-                  <p style={{ color: '#94a3b8' }}>{selectedStore?.marketplace_name} Store Configuration</p>
+                  <p style={{ color: '#94a3b8' }}>Konfigurasi Toko {selectedStore?.marketplace_name}</p>
                 </div>
                 <button onClick={() => setShowCostModal(false)} className="btn btn-secondary" style={{ padding: '0.5rem' }}><X size={20} /></button>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'min_max(400px, 1fr) 350px', gap: '2.5rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: '2.5rem' }}>
                 {/* Left side: Product Pricing */}
-                <div>
+                <div style={{ flex: '1 1 450px' }}>
                   <div style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border)' }}>
                     <h4 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <Tag size={18} color="#ec4899" />
-                      Store Product Pricing
+                      Harga Jual Produk Toko
                     </h4>
                     <form onSubmit={handleAddStoreProduct} style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
                       <select className="form-control" style={{ flex: 1.5 }} value={pricingForm.product_id} 
-                        onChange={(e) => setPricingForm({...pricingForm, product_id: e.target.value})} required>
-                        <option value="">Select Product</option>
+                        onChange={(e) => setPricingForm({...pricingForm, product_id: e.target.value})} required disabled={!!editingSpId}>
+                        <option value="">Pilih Produk</option>
                         {products.map(p => <option key={p.id} value={p.id}>{p.nama}</option>)}
                       </select>
-                      <input type="number" className="form-control" style={{ flex: 1 }} placeholder="Selling Price" 
+                      <input type="number" className="form-control" style={{ flex: 1 }} placeholder="Harga Jual" 
                         value={pricingForm.harga_jual} onChange={(e) => setPricingForm({...pricingForm, harga_jual: e.target.value})} required />
-                      <button type="submit" className="btn btn-primary"><Plus size={18} /></button>
+                      
+                      {editingSpId && (
+                        <button type="button" className="btn btn-secondary" onClick={() => {
+                          setPricingForm({ product_id: '', harga_jual: '' });
+                          setEditingSpId(null);
+                        }}><Undo2 size={18} /></button>
+                      )}
+                      <button type="submit" className="btn btn-primary">
+                        {editingSpId ? <Save size={18} /> : <Plus size={18} />}
+                      </button>
                     </form>
 
                     <div className="table-container">
@@ -238,24 +308,44 @@ const Marketplaces = () => {
                           <tr>
                             <th>Product</th>
                             <th>Hrg Jual</th>
-                            <th>Actions</th>
+                            <th>Aksi</th>
                           </tr>
                         </thead>
                         <tbody>
                           {storeProducts.map(sp => (
-                            <tr key={sp.id}>
+                            <tr 
+                              key={sp.id} 
+                              onClick={() => handleSelectStoreProduct(sp)}
+                              style={{ 
+                                cursor: 'pointer', 
+                                background: selectedStoreProduct?.id === sp.id ? 'rgba(99, 102, 241, 0.15)' : 'transparent',
+                                transition: 'background 0.2s'
+                              }}
+                            >
                               <td style={{ fontWeight: '500' }}>{sp.product_name}</td>
-                              <td style={{ fontWeight: '600' }}>Rp {sp.harga_jual.toLocaleString()}</td>
+                              <td style={{ fontWeight: '600' }} title={sp.harga_jual}>{formatCurrency(sp.harga_jual)}</td>
                               <td>
                                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                  <button onClick={() => handleCalculatePricing(sp.id)} className="btn btn-secondary" style={{ padding: '0.4rem', fontSize: '0.75rem', gap: '0.25rem' }}>
-                                    <Calculator size={14} /> Calc
+                                  <button onClick={(e) => {
+                                     e.stopPropagation();
+                                     setPricingForm({ product_id: sp.product_id, harga_jual: sp.harga_jual });
+                                     setEditingSpId(sp.id);
+                                  }} className="btn btn-secondary" style={{ padding: '0.4rem' }}>
+                                    <Edit2 size={14} />
                                   </button>
-                                  <button onClick={async () => {
-                                    if(window.confirm("Remove pricing?")) {
+                                  <button onClick={(e) => { e.stopPropagation(); handleCalculatePricing(sp.id); }} className="btn btn-secondary" style={{ padding: '0.4rem', fontSize: '0.75rem', gap: '0.25rem' }}>
+                                    <Calculator size={14} /> Hitung
+                                  </button>
+                                  <button onClick={async (e) => {
+                                    e.stopPropagation();
+                                    if(window.confirm("Hapus harga?")) {
                                       await storeProductsApi.delete(sp.id);
                                       const sps = await storeProductsApi.getAll({ store_id: selectedStore.id });
                                       setStoreProducts(sps.data);
+                                      if (selectedStoreProduct?.id === sp.id) {
+                                        setSelectedStoreProduct(null);
+                                        setSpCosts([]);
+                                      }
                                     }
                                   }} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}><Trash2 size={16} /></button>
                                 </div>
@@ -269,45 +359,78 @@ const Marketplaces = () => {
                 </div>
 
                 {/* Right side: Marketplace Costs */}
-                <div>
+                <div style={{ flex: '1 1 350px' }}>
                   <div style={{ background: 'rgba(99, 102, 241, 0.05)', padding: '1.5rem', borderRadius: '16px', border: '1px solid rgba(99, 102, 241, 0.2)' }}>
-                    <h4 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <Percent size={18} color="#6366f1" />
-                      Dynamic Fee Structure
-                    </h4>
-                    <form onSubmit={handleAddCost} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
-                      <select className="form-control" value={costForm.cost_type_id} 
-                        onChange={(e) => setCostForm({...costForm, cost_type_id: e.target.value})} required>
-                        <option value="">Select Fee Type</option>
-                        {costTypes.map(ct => (
-                          <option key={ct.id} value={ct.id}>{ct.name} ({ct.calc_type})</option>
-                        ))}
-                      </select>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                      <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Percent size={18} color="#6366f1" />
+                        {selectedStoreProduct ? `Biaya: ${selectedStoreProduct.product_name}` : 'Struktur Biaya Dinamis'}
+                      </h4>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <input type="number" step="0.0001" className="form-control" placeholder="Value (e.g. 0.05 for 5%)" 
-                          value={costForm.value} onChange={(e) => setCostForm({...costForm, value: e.target.value})} required />
-                        <button type="submit" className="btn btn-primary" style={{ padding: '0.8rem 1.2rem' }}><Plus size={20} /></button>
+                        <button 
+                          className="btn btn-secondary" 
+                          style={{ padding: '0.3rem 0.6rem', fontSize: '0.7rem' }}
+                          onClick={() => setShowTypeManager(true)}
+                        >
+                          Kelola Tipe
+                        </button>
+                        <button 
+                          className="btn btn-secondary" 
+                          style={{ padding: '0.3rem 0.6rem', fontSize: '0.7rem' }}
+                          onClick={() => setShowCostTypeModal(true)}
+                        >
+                          + Baru
+                        </button>
                       </div>
-                    </form>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                      {selectedStore?.costs?.map(cost => (
-                        <div key={cost.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '10px' }}>
-                          <div>
-                            <p style={{ fontSize: '0.9rem', fontWeight: '500' }}>{cost.cost_type_name}</p>
-                            <p style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-                              {cost.calc_type === 'percent' ? `${(cost.value * 100).toFixed(1)}%` : `Rp ${cost.value.toLocaleString()}`}
-                              {cost.calc_type === 'percent' && ` of ${cost.apply_to === 'price' ? 'Base' : 'After Disc'}`}
-                            </p>
-                          </div>
-                          <button onClick={async () => {
-                            await storeMarketplaceCostsApi.delete(cost.id);
-                            const costs = await storeMarketplaceCostsApi.getAll(selectedStore.id);
-                            setSelectedStore({ ...selectedStore, costs: costs.data });
-                          }} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}><X size={16} /></button>
-                        </div>
-                      ))}
                     </div>
+
+                    {!selectedStoreProduct ? (
+                      <div style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8', border: '1px dashed rgba(255,255,255,0.1)', borderRadius: '12px' }}>
+                        <Tag size={32} style={{ marginBottom: '1rem', opacity: 0.5 }} />
+                        <p>Pilih produk di kiri untuk mengelola biaya marketplace.</p>
+                      </div>
+                    ) : (
+                      <>
+                        <form onSubmit={handleAddCost} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
+                          <select className="form-control" value={costForm.cost_type_id} 
+                            onChange={(e) => setCostForm({...costForm, cost_type_id: e.target.value})} required>
+                            <option value="">Pilih Tipe Biaya</option>
+                            {costTypes.map(ct => (
+                              <option key={ct.id} value={ct.id}>{ct.name} ({ct.calc_type === 'percent' ? '%' : 'Rp'})</option>
+                            ))}
+                          </select>
+                          <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <input type="number" step="0.0001" className="form-control" placeholder={costForm.cost_type_id?.toLowerCase().includes('admin') ? "Nilai (contoh: 0.05 utk 5%)" : "Nilai (Rp atau %)"} 
+                              value={costForm.value} onChange={(e) => setCostForm({...costForm, value: e.target.value})} required />
+                            <button type="submit" className="btn btn-primary" style={{ padding: '0.8rem 1.2rem' }} title="Add fee to product"><Plus size={20} /></button>
+                          </div>
+                        </form>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                          {spCosts.map(cost => (
+                            <div key={cost.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '10px' }}>
+                              <div>
+                                <p style={{ fontSize: '0.9rem', fontWeight: '500' }}>{cost.cost_type_name}</p>
+                                <p style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                                  {cost.calc_type === 'percent' ? formatDecimalPercent(cost.value) : formatCurrency(cost.value)}
+                                  {cost.calc_type === 'percent' && ` of ${cost.apply_to === 'price' ? 'Base' : 'After Disc'}`}
+                                </p>
+                              </div>
+                              <button onClick={async () => {
+                                if(window.confirm("Hapus biaya ini?")) {
+                                  await storeProductMarketplaceCostsApi.delete(cost.id);
+                                  const costs = await storeProductMarketplaceCostsApi.getAll(selectedStoreProduct.id);
+                                  setSpCosts(costs.data);
+                                }
+                              }} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}><Trash2 size={16} /></button>
+                            </div>
+                          ))}
+                          {spCosts.length === 0 && (
+                            <p style={{ textAlign: 'center', fontSize: '0.85rem', color: '#94a3b8', padding: '1rem' }}>Belum ada biaya dikonfigurasi.</p>
+                          )}
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -326,49 +449,81 @@ const Marketplaces = () => {
               className="glass-card" style={{ position: 'relative', width: '100%', maxWidth: '500px', padding: '2.5rem', zIndex: 11001, border: '1px solid rgba(99, 102, 241, 0.3)' }}>
               
               <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-                <h2 style={{ color: '#6366f1', fontSize: '2rem', marginBottom: '0.5rem' }}>Pricing Analysis</h2>
-                <p style={{ color: '#94a3b8' }}>{pricingAnalysis.product_name} at {pricingAnalysis.store_name}</p>
+                <h2 style={{ color: '#6366f1', fontSize: '2rem', marginBottom: '0.5rem' }}>Analisis Harga</h2>
+                <p style={{ color: '#94a3b8' }}>{pricingAnalysis.product_name} di {pricingAnalysis.store_name}</p>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.1rem' }}>
-                  <span>Selling Price</span>
-                  <span style={{ fontWeight: '600' }}>Rp {pricingAnalysis.harga_jual.toLocaleString()}</span>
+                  <span>Harga Jual</span>
+                  <span style={{ fontWeight: '600' }} title={pricingAnalysis.harga_jual}>{formatCurrency(pricingAnalysis.harga_jual)}</span>
                 </div>
                 
                 <div style={{ padding: '1.25rem', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '12px' }}>
-                  <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Cost Breakdown</p>
+                  <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Rincian Biaya</p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ fontSize: '0.95rem' }}>HPP (Production)</span>
-                      <span> - Rp {pricingAnalysis.hpp.toLocaleString()}</span>
+                      <span style={{ fontSize: '0.95rem' }}>HPP (Produksi)</span>
+                      <span title={pricingAnalysis.hpp}> - {formatCurrency(pricingAnalysis.hpp)}</span>
                     </div>
                     {pricingAnalysis.biaya_marketplace_breakdown.map(cost => (
                       <div key={cost.cost_type_id} style={{ display: 'flex', justifyContent: 'space-between', color: '#f87171' }}>
                         <span style={{ fontSize: '0.95rem' }}>{cost.cost_type_name}</span>
-                        <span> - Rp {cost.calculated_cost.toLocaleString()}</span>
+                        <span title={cost.calculated_cost}> - {formatCurrency(cost.calculated_cost)}</span>
                       </div>
                     ))}
                   </div>
                 </div>
 
                 <div style={{ marginTop: '1rem', padding: '1.5rem', background: pricingAnalysis.profit_per_order >= 0 ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)', borderRadius: '16px', textAlign: 'center' }}>
-                  <h4 style={{ color: pricingAnalysis.profit_per_order >= 0 ? '#22c55e' : '#ef4444', textTransform: 'uppercase', fontSize: '0.8rem', letterSpacing: '0.1em', marginBottom: '0.5rem' }}>Estimated Profit</h4>
+                  <h4 style={{ color: pricingAnalysis.profit_per_order >= 0 ? '#22c55e' : '#ef4444', textTransform: 'uppercase', fontSize: '0.8rem', letterSpacing: '0.1em', marginBottom: '0.5rem' }}>Estimasi Profit</h4>
                   <p style={{ fontSize: '2.25rem', fontWeight: '800', color: pricingAnalysis.profit_per_order >= 0 ? '#22c55e' : '#ef4444' }}>
-                    Rp {pricingAnalysis.profit_per_order.toLocaleString()}
+                    {formatCurrency(pricingAnalysis.profit_per_order)}
                   </p>
                   <p style={{ fontSize: '0.9rem', marginTop: '0.25rem', fontWeight: '600' }}>
-                    {pricingAnalysis.margin_percent.toFixed(2)}% Margin
+                    {formatRawPercent(pricingAnalysis.margin_percent)} Margin
                   </p>
                 </div>
               </div>
 
-              <button className="btn btn-secondary" style={{ width: '100%', marginTop: '2rem', justifyContent: 'center' }} onClick={() => setShowPricingModal(false)}>Close Analysis</button>
+              <button className="btn btn-secondary" style={{ width: '100%', marginTop: '2rem', justifyContent: 'center' }} onClick={() => setShowPricingModal(false)}>Tutup Analisis</button>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
       
+      {/* Marketplace Modal */}
+      <AnimatePresence>
+        {showMarketplaceModal && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowMarketplaceModal(false)}
+              style={{ position: 'absolute', inset: 0, background: 'rgba(0, 0, 0, 0.6)', backdropFilter: 'blur(4px)' }} />
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+              className="glass-card" style={{ position: 'relative', width: '100%', maxWidth: '400px', padding: '2rem', zIndex: 10000 }}>
+              <h3 style={{ marginBottom: '1.5rem' }}>Tambah Marketplace Baru</h3>
+              <form onSubmit={handleMarketplaceSubmit}>
+                <div className="form-group">
+                  <label className="form-label">Nama Marketplace</label>
+                  <input type="text" className="form-control" placeholder="contoh: Shopee" value={marketplaceForm.name} 
+                    onChange={(e) => setMarketplaceForm({...marketplaceForm, name: e.target.value})} required />
+                </div>
+                 <div className="form-group">
+                  <label className="form-label">ID Marketplace (Slug)</label>
+                  <input type="text" className="form-control" placeholder="contoh: shopee (opsional)" 
+                    value={marketplaceForm.id} 
+                    onChange={(e) => setMarketplaceForm({...marketplaceForm, id: e.target.value})} />
+                  <small style={{ color: '#94a3b8', fontSize: '0.75rem' }}>Kosongkan untuk generate otomatis dari nama</small>
+                </div>
+                <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
+                  <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowMarketplaceModal(false)}>Batal</button>
+                  <button type="submit" className="btn btn-primary" style={{ flex: 1 }}><Save size={18} /> Simpan</button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Store Addition Modal */}
       <AnimatePresence>
         {showStoreModal && (
@@ -377,7 +532,7 @@ const Marketplaces = () => {
               style={{ position: 'absolute', inset: 0, background: 'rgba(0, 0, 0, 0.6)', backdropFilter: 'blur(4px)' }} />
             <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
               className="glass-card" style={{ position: 'relative', width: '100%', maxWidth: '400px', padding: '2rem', zIndex: 10000 }}>
-              <h3 style={{ marginBottom: '1.5rem' }}>Add New Store</h3>
+              <h3 style={{ marginBottom: '1.5rem' }}>Tambah Toko Baru</h3>
               <form onSubmit={async (e) => {
                 e.preventDefault();
                 try {
@@ -385,26 +540,108 @@ const Marketplaces = () => {
                   fetchBaseData();
                   setShowStoreModal(false);
                   setStoreForm({ id: '', marketplace_id: '', name: '' });
-                } catch { alert("Failed to add store"); }
+                } catch { alert("Gagal menambah toko"); }
               }}>
                 <div className="form-group">
-                  <label className="form-label">Store ID</label>
-                  <input type="text" className="form-control" placeholder="e.g. shopee-store-1" value={storeForm.id} onChange={(e) => setStoreForm({...storeForm, id: e.target.value})} required />
+                  <label className="form-label">ID Toko</label>
+                  <input type="text" className="form-control" placeholder="contoh: shopee-toko-1" value={storeForm.id} onChange={(e) => setStoreForm({...storeForm, id: e.target.value})} required />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Marketplace</label>
                   <select className="form-control" value={storeForm.marketplace_id} onChange={(e) => setStoreForm({...storeForm, marketplace_id: e.target.value})} required>
-                    <option value="">Select Marketplace</option>
+                    <option value="">Pilih Marketplace</option>
                     {marketplaces.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                   </select>
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Display Name</label>
+                  <label className="form-label">Nama Tampilan</label>
                   <input type="text" className="form-control" placeholder="e.g. Hikmah Mandiri" value={storeForm.name} onChange={(e) => setStoreForm({...storeForm, name: e.target.value})} required />
                 </div>
                 <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
-                  <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowStoreModal(false)}>Cancel</button>
-                  <button type="submit" className="btn btn-primary" style={{ flex: 1 }}><Save size={18} /> Save</button>
+                  <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowStoreModal(false)}>Batal</button>
+                  <button type="submit" className="btn btn-primary" style={{ flex: 1 }}><Save size={18} /> Simpan</button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {showTypeManager && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 11000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowTypeManager(false)}
+              style={{ position: 'absolute', inset: 0, background: 'rgba(0, 0, 0, 0.6)', backdropFilter: 'blur(4px)' }} />
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+              className="glass-card" style={{ position: 'relative', width: '100%', maxWidth: '400px', padding: '2rem', zIndex: 11001 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <h3 style={{ margin: 0 }}>Kelola Tipe Biaya</h3>
+                <button onClick={() => setShowTypeManager(false)} className="btn btn-secondary" style={{ padding: '0.4rem' }}><X size={18} /></button>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '60vh', overflowY: 'auto' }}>
+                {costTypes.map(ct => (
+                  <div key={ct.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem', background: 'rgba(255, 255, 255, 0.05)', borderRadius: '10px' }}>
+                    <div>
+                      <p style={{ fontSize: '0.9rem', fontWeight: '500' }}>{ct.name}</p>
+                      <p style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{ct.calc_type === 'percent' ? 'Percentage' : 'Fixed/Nominal'}</p>
+                    </div>
+                    <button 
+                      onClick={async () => {
+                        if (window.confirm(`Hapus tipe biaya "${ct.name}"? Ini juga akan menghapus biaya ini dari semua produk.`)) {
+                          try {
+                            await marketplaceCostTypesApi.delete(ct.id);
+                            const res = await marketplaceCostTypesApi.getAll();
+                            setCostTypes(res.data);
+                          } catch (err) {
+                            alert(err.response?.data?.detail || "Gagal menghapus tipe biaya");
+                          }
+                        }
+                      }}
+                      style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* New Cost Type Modal */}
+      <AnimatePresence>
+        {showCostTypeModal && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 11000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowCostTypeModal(false)}
+              style={{ position: 'absolute', inset: 0, background: 'rgba(0, 0, 0, 0.6)', backdropFilter: 'blur(4px)' }} />
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+              className="glass-card" style={{ position: 'relative', width: '100%', maxWidth: '400px', padding: '2rem', zIndex: 11001 }}>
+              <h3 style={{ marginBottom: '1.5rem' }}>Buat Komponen Biaya Baru</h3>
+              <form onSubmit={handleCostTypeSubmit}>
+                <div className="form-group">
+                  <label className="form-label">Nama Komponen</label>
+                  <input type="text" className="form-control" placeholder="Contoh: Admin Fee, Packing" 
+                    value={costTypeForm.name} 
+                    onChange={(e) => setCostTypeForm({...costTypeForm, name: e.target.value})} required />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Tipe Perhitungan</label>
+                  <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                      <input type="radio" name="calc_type" checked={costTypeForm.calc_type === 'percent'} 
+                        onChange={() => setCostTypeForm({...costTypeForm, calc_type: 'percent'})} />
+                      Persentase (%)
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                      <input type="radio" name="calc_type" checked={costTypeForm.calc_type === 'fixed'} 
+                        onChange={() => setCostTypeForm({...costTypeForm, calc_type: 'fixed'})} />
+                      Nominal Tetap (Rp)
+                    </label>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
+                  <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowCostTypeModal(false)}>Batal</button>
+                  <button type="submit" className="btn btn-primary" style={{ flex: 1 }}><Save size={18} /> Simpan</button>
                 </div>
               </form>
             </motion.div>

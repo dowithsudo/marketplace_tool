@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, ForeignKeyConstraint
+from sqlalchemy import Column, Integer, String, ForeignKey, ForeignKeyConstraint, UniqueConstraint
 from sqlalchemy.orm import relationship
 from ..database import Base
 
@@ -16,9 +16,11 @@ class StoreProduct(Base):
         ForeignKeyConstraint(['store_id', 'user_id'], ['stores.id', 'stores.user_id']),
         ForeignKeyConstraint(['product_id', 'user_id'], ['products.id', 'products.user_id']),
         ForeignKeyConstraint(['user_id'], ['users.id']),
+        UniqueConstraint('id', 'user_id'),
     )
 
     # Relationships
     store = relationship("Store", back_populates="store_products")
     product = relationship("Product", back_populates="store_products")
     discounts = relationship("Discount", back_populates="store_product", cascade="all, delete-orphan")
+    marketplace_costs = relationship("StoreProductMarketplaceCost", back_populates="store_product", cascade="all, delete-orphan")

@@ -63,6 +63,13 @@ export const hppApi = {
   calculate: (productId) => api.get(`/hpp/${productId}`),
 };
 
+export const extraCostsApi = {
+  getByProduct: (productId) => api.get(`/extra-costs/${productId}`),
+  create: (data) => api.post("/extra-costs", data),
+  update: (id, data) => api.put(`/extra-costs/${id}`, data),
+  delete: (id) => api.delete(`/extra-costs/${id}`),
+};
+
 export const marketplacesApi = {
   getAll: () => api.get("/marketplaces"),
   create: (data) => api.post("/marketplaces", data),
@@ -79,6 +86,7 @@ export const storesApi = {
 export const storeProductsApi = {
   getAll: (params) => api.get("/store-products", { params }),
   create: (data) => api.post("/store-products", data),
+  update: (id, data) => api.put(`/store-products/${id}`, data),
   delete: (id) => api.delete(`/store-products/${id}`),
 };
 
@@ -100,11 +108,13 @@ export const marketplaceCostTypesApi = {
   delete: (id) => api.delete(`/marketplace-cost-types/${id}`),
 };
 
-export const storeMarketplaceCostsApi = {
-  getAll: (storeId) =>
-    api.get("/store-marketplace-costs", { params: { store_id: storeId } }),
-  create: (data) => api.post("/store-marketplace-costs", data),
-  delete: (id) => api.delete(`/store-marketplace-costs/${id}`),
+export const storeProductMarketplaceCostsApi = {
+  getAll: (storeProductId) =>
+    api.get("/store-product-marketplace-costs", {
+      params: { store_product_id: storeProductId },
+    }),
+  create: (data) => api.post("/store-product-marketplace-costs", data),
+  delete: (id) => api.delete(`/store-product-marketplace-costs/${id}`),
 };
 
 export const discountsApi = {

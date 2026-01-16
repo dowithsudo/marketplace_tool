@@ -2,11 +2,11 @@
 Product Schemas
 """
 from pydantic import BaseModel, Field
+from typing import List, Optional
 
 
 class ProductBase(BaseModel):
     nama: str = Field(..., min_length=1, description="Nama produk")
-    biaya_lain: int = Field(0, ge=0, description="Biaya produksi tambahan per produk")
 
 
 class ProductCreate(ProductBase):
@@ -15,11 +15,25 @@ class ProductCreate(ProductBase):
 
 class ProductUpdate(BaseModel):
     nama: str | None = Field(None, min_length=1)
-    biaya_lain: int | None = Field(None, ge=0)
+
+
+class BOMItem(BaseModel):
+    """Simplified BOM item for product response"""
+    id: int
+    material_id: str
+    qty: float
+    material_nama: Optional[str] = None
+    material_harga_satuan: Optional[float] = None
+    biaya_bahan: Optional[float] = None
+    
+    class Config:
+        from_attributes = True
 
 
 class ProductResponse(ProductBase):
     id: str
-
+    bom_items: List[BOMItem] = []
+    hpp: Optional[float] = None
+    
     class Config:
         from_attributes = True

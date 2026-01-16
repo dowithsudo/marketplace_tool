@@ -36,19 +36,19 @@ const Navbar = () => {
               </NavLink>
               <NavLink to="/materials" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
                 <Database size={18} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
-                Materials
+                Bahan Baku
               </NavLink>
               <NavLink to="/products" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
                 <Package size={18} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
-                Products
+                Produk
               </NavLink>
               <NavLink to="/marketplaces" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
                 <ShoppingBag size={18} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
-                Marketplaces
+                Marketplace
               </NavLink>
               <NavLink to="/ads" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
                 <BarChart3 size={18} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
-                Ads
+                Iklan
               </NavLink>
             </div>
           )}
@@ -97,7 +97,7 @@ const AppContent = () => {
         </div>
       </main>
       <footer style={{ padding: '2rem', textAlign: 'center', borderTop: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-        &copy; 2026 Marketplace Tool &bull; Multi-User Version
+        &copy; 2026 Marketplace Tool &bull; Versi Multi-Pengguna
       </footer>
     </>
   );

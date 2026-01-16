@@ -11,10 +11,11 @@ from .stores import router as stores_router
 from .store_products import router as store_products_router
 from .discounts import router as discounts_router
 from .marketplace_cost_types import router as marketplace_cost_types_router
-from .store_marketplace_costs import router as store_marketplace_costs_router
+from .store_product_marketplace_costs import router as store_product_marketplace_costs_router
 from .pricing import router as pricing_router
 from .ads import router as ads_router
 from .decision import router as decision_router
+from .extra_costs import router as extra_costs_router
 
 __all__ = [
     "auth_router",
@@ -27,8 +28,9 @@ __all__ = [
     "store_products_router",
     "discounts_router",
     "marketplace_cost_types_router",
-    "store_marketplace_costs_router",
+    "store_product_marketplace_costs_router",
     "pricing_router",
     "ads_router",
-    "decision_router"
+    "decision_router",
+    "extra_costs_router"
 ]

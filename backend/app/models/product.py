@@ -9,10 +9,10 @@ class Product(Base):
     id = Column(String, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
     nama = Column(String, nullable=False)
-    biaya_lain = Column(Integer, default=0)
 
     # Relationships
     user = relationship("User", back_populates="products")
     bom_items = relationship("BOM", back_populates="product", cascade="all, delete-orphan", overlaps="bom_items")
     store_products = relationship("StoreProduct", back_populates="product", cascade="all, delete-orphan", overlaps="store_products")
     ads = relationship("Ad", back_populates="product", cascade="all, delete-orphan", overlaps="ads")
+    extra_costs = relationship("ProductExtraCost", back_populates="product", cascade="all, delete-orphan")

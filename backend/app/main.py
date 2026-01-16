@@ -16,10 +16,11 @@ from .routers import (
     store_products_router,
     discounts_router,
     marketplace_cost_types_router,
-    store_marketplace_costs_router,
+    store_product_marketplace_costs_router,
     pricing_router,
     ads_router,
-    decision_router
+    decision_router,
+    extra_costs_router
 )
 
 # Create database tables
@@ -58,10 +59,11 @@ app.include_router(stores_router)
 app.include_router(store_products_router)
 app.include_router(discounts_router)
 app.include_router(marketplace_cost_types_router)
-app.include_router(store_marketplace_costs_router)
+app.include_router(store_product_marketplace_costs_router)
 app.include_router(pricing_router)
 app.include_router(ads_router)
 app.include_router(decision_router)
+app.include_router(extra_costs_router)
 
 
 @app.get("/")

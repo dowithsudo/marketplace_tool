@@ -14,4 +14,4 @@ class MarketplaceCostType(Base):
 
     # Relationships
     user = relationship("User", back_populates="marketplace_cost_types")
-    store_costs = relationship("StoreMarketplaceCost", back_populates="cost_type", cascade="all, delete-orphan", overlaps="store_costs")
+    store_product_costs = relationship("StoreProductMarketplaceCost", back_populates="cost_type", cascade="all, delete-orphan")

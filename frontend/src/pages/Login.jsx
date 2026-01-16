@@ -24,10 +24,10 @@ const Login = () => {
       } else {
         await register({ email, password, full_name: fullName });
         setIsLogin(true);
-        setError('Registration successful! Please login.');
+        setError('Registrasi berhasil! Silakan masuk.');
       }
     } catch (err) {
-      setError(err.response?.data?.detail || 'An error occurred. Please try again.');
+      setError(err.response?.data?.detail || 'Terjadi kesalahan. Silakan coba lagi.');
     } finally {
       setLoading(false);
     }
@@ -63,10 +63,10 @@ const Login = () => {
             {isLogin ? <LogIn size={32} color="#6366f1" /> : <UserPlus size={32} color="#6366f1" />}
           </div>
           <h2 style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }}>
-            {isLogin ? 'Welcome Back' : 'Create Account'}
+            {isLogin ? 'Selamat Datang' : 'Buat Akun'}
           </h2>
           <p style={{ color: '#94a3b8' }}>
-            {isLogin ? 'Login to manage your marketplace business' : 'Join us to start optimizing your profits'}
+            {isLogin ? 'Masuk untuk mengelola bisnis marketplace Anda' : 'Bergabung untuk mulai optimalkan keuntungan'}
           </p>
         </div>
 
@@ -88,7 +88,7 @@ const Login = () => {
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           {!isLogin && (
             <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label">Full Name</label>
+              <label className="form-label">Nama Lengkap</label>
               <div style={{ position: 'relative' }}>
                 <UserIcon size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
                 <input 
@@ -105,7 +105,7 @@ const Login = () => {
           )}
 
           <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label">Email Address</label>
+            <label className="form-label">Alamat Email</label>
             <div style={{ position: 'relative' }}>
               <Mail size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
               <input 
@@ -120,7 +120,7 @@ const Login = () => {
             </div>
           </div>
 
-          <div className="form-group" style={{ marginBottom: 0 }}>
+            <div className="form-group" style={{ marginBottom: 0 }}>
             <label className="form-label">Password</label>
             <div style={{ position: 'relative' }}>
               <Lock size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
@@ -137,7 +137,7 @@ const Login = () => {
             {isLogin && (
               <div style={{ textAlign: 'right', marginTop: '0.5rem' }}>
                 <a href="/forgot-password" style={{ fontSize: '0.85rem', color: '#6366f1', textDecoration: 'none' }}>
-                  Forgot Password?
+                  Lupa Password?
                 </a>
               </div>
             )}
@@ -149,13 +149,13 @@ const Login = () => {
             style={{ width: '100%', justifyContent: 'center', padding: '0.875rem', marginTop: '1rem' }}
             disabled={loading}
           >
-            {loading ? <Loader2 className="animate-spin" size={20} /> : (isLogin ? 'Login' : 'Sign Up')}
+            {loading ? <Loader2 className="animate-spin" size={20} /> : (isLogin ? 'Masuk' : 'Daftar')}
           </button>
         </form>
 
         <div style={{ marginTop: '2rem', textAlign: 'center' }}>
           <p style={{ color: '#94a3b8', fontSize: '0.875rem' }}>
-            {isLogin ? "Don't have an account?" : "Already have an account?"}
+            {isLogin ? "Belum punya akun?" : "Sudah punya akun?"}
             {' '}
             <button 
               onClick={() => setIsLogin(!isLogin)}
@@ -168,7 +168,7 @@ const Login = () => {
                 padding: 0
               }}
             >
-              {isLogin ? 'Sign Up' : 'Login'}
+              {isLogin ? 'Daftar' : 'Masuk'}
             </button>
           </p>
         </div>

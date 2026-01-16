@@ -4,7 +4,7 @@ Handles forward and reverse pricing calculations
 """
 from sqlalchemy.orm import Session
 from typing import Optional, List
-from ..models import StoreProduct, Store, Product, Discount, StoreMarketplaceCost, MarketplaceCostType
+from ..models import StoreProduct, Store, Product, Discount, StoreProductMarketplaceCost, MarketplaceCostType
 from ..schemas.pricing import (
     PricingCalcResponse, CostBreakdown,
     ReversePricingRequest, ReversePricingResponse
@@ -58,13 +58,13 @@ class PricingService:
         
         harga_setelah_diskon = harga_jual - total_diskon
         
-        # Calculate marketplace costs
-        store_costs = db.query(StoreMarketplaceCost).filter(StoreMarketplaceCost.store_id == store.id).all()
+        # Calculate marketplace costs (per product)
+        sp_costs = db.query(StoreProductMarketplaceCost).filter(StoreProductMarketplaceCost.store_product_id == store_product_id).all()
         
         cost_breakdown = []
         total_biaya_marketplace = 0.0
         
-        for sc in store_costs:
+        for sc in sp_costs:
             cost_type = db.query(MarketplaceCostType).filter(MarketplaceCostType.id == sc.cost_type_id).first()
             if cost_type:
                 if cost_type.calc_type == "percent":
@@ -131,17 +131,24 @@ class PricingService:
         # Get HPP
         hpp = HPPService.get_hpp_value(db, product.id)
         
-        # Get marketplace costs for this store
-        store_costs = db.query(StoreMarketplaceCost).filter(StoreMarketplaceCost.store_id == store.id).all()
+        # Get marketplace costs for this specific product in this store
+        # First find the store_product record
+        store_product = db.query(StoreProduct).filter(
+            StoreProduct.store_id == request.store_id,
+            StoreProduct.product_id == request.product_id
+        ).first()
+        
         cost_types = {}
-        for sc in store_costs:
-            cost_type = db.query(MarketplaceCostType).filter(MarketplaceCostType.id == sc.cost_type_id).first()
-            if cost_type:
-                cost_types[sc.cost_type_id] = {
-                    "calc_type": cost_type.calc_type,
-                    "apply_to": cost_type.apply_to,
-                    "value": sc.value
-                }
+        if store_product:
+            sp_costs = db.query(StoreProductMarketplaceCost).filter(StoreProductMarketplaceCost.store_product_id == store_product.id).all()
+            for sc in sp_costs:
+                cost_type = db.query(MarketplaceCostType).filter(MarketplaceCostType.id == sc.cost_type_id).first()
+                if cost_type:
+                    cost_types[sc.cost_type_id] = {
+                        "calc_type": cost_type.calc_type,
+                        "apply_to": cost_type.apply_to,
+                        "value": sc.value
+                    }
         
         # Iterative search for minimum price
         # Start from HPP and iterate upward

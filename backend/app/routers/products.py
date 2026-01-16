@@ -31,7 +31,6 @@ def create_product(
         id=product.id,
         user_id=current_user.id,
         nama=product.nama,
-        biaya_lain=product.biaya_lain
     )
     
     db.add(db_product)
@@ -45,8 +44,52 @@ def get_products(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Get all products for current user"""
-    return db.query(Product).filter(Product.user_id == current_user.id).all()
+    """Get all products for current user with BOM items"""
+    from ..models import BOM, Material
+    from ..schemas.product import BOMItem
+    
+    products = db.query(Product).filter(Product.user_id == current_user.id).all()
+    
+    # Populate BOM items for each product
+    result = []
+    for product in products:
+        # Get BOM items for this product
+        bom_items = db.query(BOM).filter(
+            BOM.product_id == product.id,
+            BOM.user_id == current_user.id
+        ).all()
+        
+        # Build BOM item responses with material info
+        bom_responses = []
+        total_hpp = 0
+        for bom in bom_items:
+            material = db.query(Material).filter(
+                Material.id == bom.material_id,
+                Material.user_id == current_user.id
+            ).first()
+            
+            biaya_bahan = bom.qty * material.harga_satuan if material else 0
+            total_hpp += biaya_bahan
+            
+            bom_responses.append(BOMItem(
+                id=bom.id,
+                material_id=bom.material_id,
+                qty=bom.qty,
+                material_nama=material.nama if material else None,
+                material_harga_satuan=material.harga_satuan if material else None,
+                biaya_bahan=biaya_bahan
+            ))
+        
+        # Create product response with BOM items
+        product_dict = {
+            "id": product.id,
+            "nama": product.nama,
+            "bom_items": bom_responses,
+            "hpp": total_hpp if total_hpp > 0 else None
+        }
+        result.append(ProductResponse(**product_dict))
+    
+    return result
 
 
 @router.get("/{product_id}", response_model=ProductResponse)
@@ -88,8 +131,6 @@ def update_product(
     
     if product.nama is not None:
         db_product.nama = product.nama
-    if product.biaya_lain is not None:
-        db_product.biaya_lain = product.biaya_lain
     
     db.commit()
     db.refresh(db_product)

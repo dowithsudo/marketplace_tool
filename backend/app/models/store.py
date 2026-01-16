@@ -19,5 +19,4 @@ class Store(Base):
     user = relationship("User", back_populates="stores")
     marketplace = relationship("Marketplace", back_populates="stores")
     store_products = relationship("StoreProduct", back_populates="store", cascade="all, delete-orphan", overlaps="store_products")
-    marketplace_costs = relationship("StoreMarketplaceCost", back_populates="store", cascade="all, delete-orphan", overlaps="marketplace_costs")
     ads = relationship("Ad", back_populates="store", cascade="all, delete-orphan", overlaps="ads")

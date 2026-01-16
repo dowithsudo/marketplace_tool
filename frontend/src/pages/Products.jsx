@@ -14,7 +14,8 @@ import {
   Calculator,
   Info
 } from 'lucide-react';
-import { productsApi, bomApi, materialsApi, hppApi } from '../api';
+import { productsApi, bomApi, materialsApi, hppApi, extraCostsApi } from '../api';
+import { formatCurrency, formatNumber } from '../utils/formatters';
 
 const Products = () => {
   const [products, setProducts] = useState([]);
@@ -25,8 +26,9 @@ const Products = () => {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   
-  const [productForm, setProductForm] = useState({ id: '', nama: '', biaya_lain: 0 });
+  const [productForm, setProductForm] = useState({ id: '', nama: '' });
   const [bomForm, setBomForm] = useState({ material_id: '', qty: '' });
+  const [extraCostForm, setExtraCostForm] = useState({ label: '', value: '' });
   const [bomItems, setBomItems] = useState([]);
   const [hppData, setHppData] = useState(null);
 
@@ -51,9 +53,9 @@ const Products = () => {
 
   const handleOpenProductModal = (product = null) => {
     if (product) {
-      setProductForm({ id: product.id, nama: product.nama, biaya_lain: product.biaya_lain });
+      setProductForm({ id: product.id, nama: product.nama });
     } else {
-      setProductForm({ id: '', nama: '', biaya_lain: 0 });
+      setProductForm({ id: '', nama: '' });
     }
     setShowProductModal(true);
   };
@@ -70,7 +72,7 @@ const Products = () => {
       setHppData(hppResp.data);
       setShowBOMModal(true);
     } catch {
-      alert("Failed to load BOM data");
+      alert("Gagal memuat data BOM");
     } finally {
       setLoading(false);
     }
@@ -85,10 +87,11 @@ const Products = () => {
       } else {
         await productsApi.create(productForm);
       }
-      fetchData();
+      // Wait for fetch to complete to ensure UI is consistent
+      await fetchData();
       setShowProductModal(false);
     } catch (error) {
-      alert(error.response?.data?.detail || "Operation failed");
+      alert(error.response?.data?.detail || "Operasi gagal");
     }
   };
 
@@ -108,7 +111,23 @@ const Products = () => {
       setHppData(hppResp.data);
       setBomForm({ material_id: '', qty: '' });
     } catch (error) {
-      alert(error.response?.data?.detail || "Failed to add BOM item");
+      alert(error.response?.data?.detail || "Gagal menambah item BOM");
+    }
+  };
+
+  const handleExtraCostSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await extraCostsApi.create({
+        product_id: selectedProduct.id,
+        ...extraCostForm
+      });
+      // Refresh HPP
+      const hppResp = await hppApi.calculate(selectedProduct.id);
+      setHppData(hppResp.data);
+      setExtraCostForm({ label: '', value: '' });
+    } catch (error) {
+      alert(error.response?.data?.detail || "Gagal menambah biaya ekstra");
     }
   };
 
@@ -122,7 +141,17 @@ const Products = () => {
       setBomItems(bomResp.data);
       setHppData(hppResp.data);
     } catch {
-      alert("Delete failed");
+      alert("Gagal menghapus");
+    }
+  };
+
+  const handleDeleteExtraCost = async (costId) => {
+    try {
+      await extraCostsApi.delete(costId);
+      const hppResp = await hppApi.calculate(selectedProduct.id);
+      setHppData(hppResp.data);
+    } catch {
+      alert("Gagal menghapus");
     }
   };
 
@@ -138,12 +167,12 @@ const Products = () => {
           <div>
             <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               <Package color="#ec4899" />
-              Products Mastery
+              Manajemen Produk
             </h1>
             <p style={{ color: '#94a3b8' }}>Kelola produk utama dan tentukan struktur biaya produksinya.</p>
           </div>
           <button className="btn btn-primary" onClick={() => handleOpenProductModal()}>
-            <Plus size={18} /> Add Product
+            <Plus size={18} /> Tambah Produk
           </button>
         </header>
 
@@ -153,7 +182,7 @@ const Products = () => {
             <input 
               type="text" 
               className="form-control" 
-              placeholder="Search products by name or ID..." 
+              placeholder="Cari produk berdasarkan nama atau ID..." 
               style={{ paddingLeft: '3rem' }}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -163,9 +192,9 @@ const Products = () => {
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, min_max(350px, 1fr))', gap: '1.5rem' }}>
           {loading && products.length === 0 ? (
-            <div style={{ textAlign: 'center', gridColumn: '1/-1', padding: '3rem' }}>Loading products...</div>
+            <div style={{ textAlign: 'center', gridColumn: '1/-1', padding: '3rem' }}>Memuat produk...</div>
           ) : filteredProducts.length === 0 ? (
-            <div style={{ textAlign: 'center', gridColumn: '1/-1', padding: '3rem' }}>No products found.</div>
+            <div style={{ textAlign: 'center', gridColumn: '1/-1', padding: '3rem' }}>Tidak ada produk ditemukan.</div>
           ) : filteredProducts.map(product => (
             <motion.div key={product.id} className="glass-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
@@ -175,7 +204,7 @@ const Products = () => {
                     <Edit2 size={14} />
                   </button>
                   <button className="btn btn-danger" style={{ padding: '0.4rem' }} onClick={async () => {
-                    if(window.confirm("Delete product and its BOM?")) {
+                    if(window.confirm("Hapus produk dan BOM-nya?")) {
                       await productsApi.delete(product.id);
                       fetchData();
                     }
@@ -185,13 +214,11 @@ const Products = () => {
                 </div>
               </div>
               <h3 style={{ marginBottom: '0.5rem' }}>{product.nama}</h3>
-              <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
-                Biaya Produksi Lain: Rp {product.biaya_lain.toLocaleString()}
-              </p>
+              {/* Removed incompatible biaya_lain display */}
               
               <div style={{ marginTop: 'auto' }}>
                 <button className="btn btn-secondary" style={{ width: '100%', justifyContent: 'center' }} onClick={() => handleOpenBOMModal(product)}>
-                  <Layers size={16} /> Manage BOM & HPP
+                  <Layers size={16} /> Kelola BOM & HPP
                   <ChevronRight size={16} />
                 </button>
               </div>
@@ -208,26 +235,22 @@ const Products = () => {
               style={{ position: 'absolute', inset: 0, background: 'rgba(0, 0, 0, 0.6)', backdropFilter: 'blur(4px)' }} />
             <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
               className="glass-card" style={{ position: 'relative', width: '100%', maxWidth: '450px', padding: '2rem', zIndex: 10000 }}>
-              <h3 style={{ marginBottom: '1.5rem' }}>{productForm.id ? 'Edit Product' : 'Add New Product'}</h3>
+              <h3 style={{ marginBottom: '1.5rem' }}>{productForm.id ? 'Ubah Produk' : 'Tambah Produk Baru'}</h3>
               <form onSubmit={handleProductSubmit}>
                 <div className="form-group">
-                  <label className="form-label">Product ID (Unique SKU)</label>
-                  <input type="text" className="form-control" placeholder="e.g. TSHIRT-O-BLK" value={productForm.id} 
+                  <label className="form-label">ID Produk (SKU Unik)</label>
+                  <input type="text" className="form-control" placeholder="contoh: KAOS-O-HTM" value={productForm.id} 
                     onChange={(e) => setProductForm({...productForm, id: e.target.value})} disabled={!!products.find(p => p.id === productForm.id) && showProductModal} required />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Nama Produk</label>
-                  <input type="text" className="form-control" placeholder="e.g. Kaos Polos Hitam" value={productForm.nama} 
+                  <input type="text" className="form-control" placeholder="contoh: Kaos Polos Hitam" value={productForm.nama} 
                     onChange={(e) => setProductForm({...productForm, nama: e.target.value})} required />
                 </div>
-                <div className="form-group">
-                  <label className="form-label">Biaya Lain (Produksi/Tailor/Lainnya)</label>
-                  <input type="number" className="form-control" placeholder="5000" value={productForm.biaya_lain} 
-                    onChange={(e) => setProductForm({...productForm, biaya_lain: parseInt(e.target.value)})} required />
-                </div>
+                
                 <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
-                  <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowProductModal(false)}>Cancel</button>
-                  <button type="submit" className="btn btn-primary" style={{ flex: 1 }}><Save size={18} /> Save Product</button>
+                  <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowProductModal(false)}>Batal</button>
+                  <button type="submit" className="btn btn-primary" style={{ flex: 1 }}><Save size={18} /> Simpan Produk</button>
                 </div>
               </form>
             </motion.div>
@@ -247,33 +270,33 @@ const Products = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                 <div>
                   <h3 style={{ fontSize: '1.5rem' }}>{selectedProduct?.nama}</h3>
-                  <p style={{ color: '#94a3b8' }}>Bill of Materials (BOM) & HPP Breakdown</p>
+                  <p style={{ color: '#94a3b8' }}>Rincian Bill of Materials (BOM) & HPP</p>
                 </div>
                 <button onClick={() => setShowBOMModal(false)} className="btn btn-secondary" style={{ padding: '0.5rem' }}><X size={20} /></button>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'min_max(300px, 1fr) 250px', gap: '2rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) 250px', gap: '2rem' }}>
                 <div>
-                  <h4 style={{ marginBottom: '1rem', fontSize: '1rem' }}>Add Ingredient</h4>
+                  <h4 style={{ marginBottom: '1rem', fontSize: '1rem' }}>Tambah Bahan Baku</h4>
                   <form onSubmit={handleBOMSubmit} style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
                     <select className="form-control" style={{ flex: 2 }} value={bomForm.material_id} onChange={(e) => setBomForm({...bomForm, material_id: e.target.value})} required>
-                      <option value="">Select Material</option>
+                      <option value="">Pilih Bahan</option>
                       {materials.map(m => (
-                        <option key={m.id} value={m.id}>{m.nama} (Rp {m.harga_satuan}/{m.satuan})</option>
+                        <option key={m.id} value={m.id}>{m.nama} ({formatCurrency(m.harga_satuan)}/{m.satuan})</option>
                       ))}
                     </select>
                     <input type="number" step="0.01" className="form-control" style={{ flex: 1 }} placeholder="Qty" value={bomForm.qty} onChange={(e) => setBomForm({...bomForm, qty: e.target.value})} required />
                     <button type="submit" className="btn btn-primary" style={{ padding: '0 1rem' }}><Plus size={18} /></button>
                   </form>
 
-                  <h4 style={{ marginBottom: '1rem', fontSize: '1rem' }}>Current BOM Items</h4>
-                  <div className="table-container">
+                  <h4 style={{ marginBottom: '1rem', fontSize: '1rem' }}>Daftar BOM Saat Ini</h4>
+                  <div className="table-container" style={{ marginBottom: '2rem' }}>
                     <table style={{ fontSize: '0.9rem' }}>
                       <thead>
                         <tr>
                           <th>Material</th>
                           <th>Qty</th>
-                          <th>Cost</th>
+                          <th>Biaya</th>
                           <th></th>
                         </tr>
                       </thead>
@@ -281,8 +304,8 @@ const Products = () => {
                         {bomItems.map(item => (
                           <tr key={item.id}>
                             <td>{item.material_nama}</td>
-                            <td>{item.qty} {item.material_satuan}</td>
-                            <td>Rp {item.biaya_bahan?.toLocaleString()}</td>
+                            <td>{formatNumber(item.qty)} {item.material_satuan}</td>
+                            <td title={item.biaya_bahan}>{formatCurrency(item.biaya_bahan)}</td>
                             <td>
                               <button onClick={() => handleDeleteBOM(item.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}>
                                 <Trash2 size={14} />
@@ -290,29 +313,63 @@ const Products = () => {
                             </td>
                           </tr>
                         ))}
-                        {bomItems.length === 0 && <tr><td colSpan="4" style={{ textAlign: 'center', padding: '1rem', color: '#94a3b8' }}>Empty BOM</td></tr>}
+                        {bomItems.length === 0 && <tr><td colSpan="4" style={{ textAlign: 'center', padding: '1rem', color: '#94a3b8' }}>BOM Kosong</td></tr>}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <h4 style={{ marginBottom: '1rem', fontSize: '1rem' }}>Tambah Biaya Lain</h4>
+                  <form onSubmit={handleExtraCostSubmit} style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
+                    <input type="text" className="form-control" style={{ flex: 2 }} placeholder="Biaya (e.g. Packing, Overhead)" value={extraCostForm.label} onChange={(e) => setExtraCostForm({...extraCostForm, label: e.target.value})} required />
+                    <input type="number" className="form-control" style={{ flex: 1 }} placeholder="Amount" value={extraCostForm.value} onChange={(e) => setExtraCostForm({...extraCostForm, value: e.target.value})} required />
+                    <button type="submit" className="btn btn-primary" style={{ padding: '0 1rem' }}><Plus size={18} /></button>
+                  </form>
+
+                  <h4 style={{ marginBottom: '1rem', fontSize: '1rem' }}>Biaya Lain Saat Ini</h4>
+                  <div className="table-container">
+                    <table style={{ fontSize: '0.9rem' }}>
+                      <thead>
+                        <tr>
+                          <th>Label</th>
+                          <th>Biaya</th>
+                          <th></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {hppData?.extra_costs?.map(item => (
+                          <tr key={item.id}>
+                            <td>{item.label}</td>
+                            <td title={item.value}>{formatCurrency(item.value)}</td>
+                            <td>
+                              <button onClick={() => handleDeleteExtraCost(item.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}>
+                                <Trash2 size={14} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                        {(!hppData?.extra_costs || hppData.extra_costs.length === 0) && <tr><td colSpan="3" style={{ textAlign: 'center', padding: '1rem', color: '#94a3b8' }}>Tidak ada biaya lain</td></tr>}
                       </tbody>
                     </table>
                   </div>
                 </div>
 
-                <div className="glass-card" style={{ padding: '1.5rem', background: 'rgba(99, 102, 241, 0.05)', border: '1px solid rgba(99, 102, 241, 0.2)' }}>
+                <div className="glass-card" style={{ padding: '1.5rem', background: 'rgba(99, 102, 241, 0.05)', height: 'fit-content', border: '1px solid rgba(99, 102, 241, 0.2)' }}>
                   <h4 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <Calculator size={18} color="#6366f1" />
-                    HPP Summary
+                    Ringkasan HPP
                   </h4>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: '#94a3b8' }}>Total Materials</span>
-                      <span>Rp {hppData?.total_bahan?.toLocaleString()}</span>
+                      <span style={{ color: '#94a3b8' }}>Total Bahan Baku</span>
+                      <span title={hppData?.total_bahan}>{formatCurrency(hppData?.total_bahan)}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: '#94a3b8' }}>Other Costs</span>
-                      <span>Rp {hppData?.biaya_lain?.toLocaleString()}</span>
+                      <span style={{ color: '#94a3b8' }}>Biaya Lainnya</span>
+                      <span title={hppData?.biaya_lain}>{formatCurrency(hppData?.biaya_lain)}</span>
                     </div>
                     <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid rgba(255, 255, 255, 0.1)', display: 'flex', justifyContent: 'space-between', fontWeight: '700', fontSize: '1.1rem' }}>
-                      <span>FINAL HPP</span>
-                      <span style={{ color: '#6366f1' }}>Rp {hppData?.hpp?.toLocaleString()}</span>
+                      <span>HPP FINAL</span>
+                      <span style={{ color: '#6366f1' }} title={hppData?.hpp}>{formatCurrency(hppData?.hpp)}</span>
                     </div>
                   </div>
                   

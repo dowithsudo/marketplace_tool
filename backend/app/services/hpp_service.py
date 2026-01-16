@@ -4,8 +4,9 @@ Handles cost of goods sold calculations
 """
 from sqlalchemy.orm import Session
 from typing import Optional
-from ..models import Product, BOM, Material
+from ..models import Product, BOM, Material, ProductExtraCost
 from ..schemas.hpp import HPPResponse, BOMDetail
+from ..schemas.product_extra_cost import ProductExtraCostResponse
 
 
 class HPPService:
@@ -16,7 +17,7 @@ class HPPService:
         """
         Menghitung HPP untuk produk tertentu
         
-        HPP = total_bahan + biaya_lain
+        HPP = total_bahan + biaya_lain + sum(extra_costs)
         total_bahan = sum(qty * harga_satuan untuk setiap bahan dalam BOM)
         
         Args:
@@ -52,14 +53,21 @@ class HPPService:
                     biaya_bahan=biaya_bahan
                 ))
         
-        hpp = total_bahan + product.biaya_lain
+        # Get extra costs
+        extra_costs_items = db.query(ProductExtraCost).filter(ProductExtraCost.product_id == product_id).all()
+        extra_costs_responses = [ProductExtraCostResponse.from_orm(ec) for ec in extra_costs_items]
+        total_extra = sum(ec.value for ec in extra_costs_items)
+        
+        total_biaya_lain = total_extra
+        hpp = total_bahan + total_biaya_lain
         
         return HPPResponse(
             product_id=product.id,
             product_nama=product.nama,
             bom_details=bom_details,
+            extra_costs=extra_costs_responses,
             total_bahan=total_bahan,
-            biaya_lain=product.biaya_lain,
+            biaya_lain=total_biaya_lain,
             hpp=hpp
         )
     

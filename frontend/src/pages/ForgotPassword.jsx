@@ -23,7 +23,7 @@ const ForgotPassword = () => {
       const response = await authApi.forgotPassword(email);
       setSuccess(response.data.message);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Something went wrong');
+      setError(err.response?.data?.detail || 'Terjadi kesalahan');
     } finally {
       setLoading(false);
     }
@@ -32,7 +32,7 @@ const ForgotPassword = () => {
   const handleResetPassword = async (e) => {
     e.preventDefault();
     if (newPassword !== confirmPassword) {
-      setError('Passwords do not match');
+      setError('Password tidak cocok');
       return;
     }
     setLoading(true);
@@ -41,7 +41,7 @@ const ForgotPassword = () => {
       const response = await authApi.resetPassword(token, newPassword);
       setSuccess(response.data.message);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Something went wrong');
+      setError(err.response?.data?.detail || 'Terjadi kesalahan');
     } finally {
       setLoading(false);
     }
@@ -73,15 +73,15 @@ const ForgotPassword = () => {
             marginBottom: '1.5rem'
           }}>
             <ArrowLeft size={16} />
-            Back to Login
+            Kembali ke Login
           </Link>
           <h2 style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }}>
-            {token ? 'Reset Password' : 'Forgot Password'}
+            {token ? 'Reset Password' : 'Lupa Password'}
           </h2>
           <p style={{ color: '#94a3b8' }}>
             {token 
-              ? 'Enter your new password below' 
-              : 'Enter your email to receive a password reset link'}
+              ? 'Masukkan password baru di bawah' 
+              : 'Masukkan email untuk menerima link reset'}
           </p>
         </div>
 
@@ -104,14 +104,14 @@ const ForgotPassword = () => {
             <CheckCircle size={48} color="#10b981" style={{ margin: '0 auto 1rem' }} />
             <p style={{ color: '#10b981', fontWeight: '600', marginBottom: '1.5rem' }}>{success}</p>
             <Link to="/" className="btn btn-primary" style={{ width: '100%', textDecoration: 'none', display: 'flex', justifyContent: 'center' }}>
-              Go to Login
+              Ke Halaman Login
             </Link>
           </div>
         ) : (
           <form onSubmit={token ? handleResetPassword : handleRequestReset} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             {!token ? (
               <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label">Email Address</label>
+                <label className="form-label">Alamat Email</label>
                 <div style={{ position: 'relative' }}>
                   <Mail size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
                   <input 
@@ -128,7 +128,7 @@ const ForgotPassword = () => {
             ) : (
               <>
                 <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">New Password</label>
+                  <label className="form-label">Password Baru</label>
                   <div style={{ position: 'relative' }}>
                     <Lock size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
                     <input 
@@ -143,7 +143,7 @@ const ForgotPassword = () => {
                   </div>
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Confirm Password</label>
+                  <label className="form-label">Konfirmasi Password</label>
                   <div style={{ position: 'relative' }}>
                     <Lock size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
                     <input 
@@ -166,7 +166,7 @@ const ForgotPassword = () => {
               style={{ width: '100%', justifyContent: 'center', padding: '0.875rem', marginTop: '1rem' }}
               disabled={loading}
             >
-              {loading ? <Loader2 className="animate-spin" size={20} /> : (token ? 'Update Password' : 'Send Reset Link')}
+              {loading ? <Loader2 className="animate-spin" size={20} /> : (token ? 'Perbarui Password' : 'Kirim Link Reset')}
             </button>
           </form>
         )}

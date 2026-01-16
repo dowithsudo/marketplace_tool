@@ -6,30 +6,44 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from ..database import get_db
-from ..models import Ad, Store, Product
+from ..models import Ad, Store, Product, User
 from ..schemas.ad import AdCreate, AdUpdate, AdResponse
+from ..deps import get_current_user
 
 router = APIRouter(prefix="/ads", tags=["Ads"])
 
 
 @router.post("", response_model=AdResponse, status_code=status.HTTP_201_CREATED)
-def create_ad(ad: AdCreate, db: Session = Depends(get_db)):
+def create_ad(
+    ad: AdCreate, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     """Create a new ad record"""
-    store = db.query(Store).filter(Store.id == ad.store_id).first()
+    store = db.query(Store).filter(
+        Store.id == ad.store_id,
+        Store.user_id == current_user.id
+    ).first()
     if not store:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Store dengan ID '{ad.store_id}' tidak ditemukan"
         )
     
-    product = db.query(Product).filter(Product.id == ad.product_id).first()
+    product = db.query(Product).filter(
+        Product.id == ad.product_id,
+        Product.user_id == current_user.id
+    ).first()
     if not product:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Product dengan ID '{ad.product_id}' tidak ditemukan"
         )
     
-    db_ad = Ad(**ad.model_dump())
+    db_ad = Ad(
+        **ad.model_dump(),
+        user_id=current_user.id
+    )
     db.add(db_ad)
     db.commit()
     db.refresh(db_ad)
@@ -38,9 +52,14 @@ def create_ad(ad: AdCreate, db: Session = Depends(get_db)):
 
 
 @router.get("", response_model=List[AdResponse])
-def get_ads(store_id: str = None, product_id: str = None, db: Session = Depends(get_db)):
-    """Get ads with optional filtering"""
-    query = db.query(Ad)
+def get_ads(
+    store_id: str = None, 
+    product_id: str = None, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get ads for current user with optional filtering"""
+    query = db.query(Ad).filter(Ad.user_id == current_user.id)
     if store_id:
         query = query.filter(Ad.store_id == store_id)
     if product_id:
@@ -50,18 +69,33 @@ def get_ads(store_id: str = None, product_id: str = None, db: Session = Depends(
 
 
 @router.get("/{ad_id}", response_model=AdResponse)
-def get_ad(ad_id: int, db: Session = Depends(get_db)):
+def get_ad(
+    ad_id: int, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     """Get a specific ad by ID"""
-    ad = db.query(Ad).filter(Ad.id == ad_id).first()
+    ad = db.query(Ad).filter(
+        Ad.id == ad_id,
+        Ad.user_id == current_user.id
+    ).first()
     if not ad:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ad tidak ditemukan")
     return _build_ad_response(ad)
 
 
 @router.put("/{ad_id}", response_model=AdResponse)
-def update_ad(ad_id: int, ad: AdUpdate, db: Session = Depends(get_db)):
+def update_ad(
+    ad_id: int, 
+    ad: AdUpdate, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     """Update an ad"""
-    db_ad = db.query(Ad).filter(Ad.id == ad_id).first()
+    db_ad = db.query(Ad).filter(
+        Ad.id == ad_id,
+        Ad.user_id == current_user.id
+    ).first()
     if not db_ad:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ad tidak ditemukan")
     
@@ -74,9 +108,16 @@ def update_ad(ad_id: int, ad: AdUpdate, db: Session = Depends(get_db)):
 
 
 @router.delete("/{ad_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_ad(ad_id: int, db: Session = Depends(get_db)):
+def delete_ad(
+    ad_id: int, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     """Delete an ad"""
-    db_ad = db.query(Ad).filter(Ad.id == ad_id).first()
+    db_ad = db.query(Ad).filter(
+        Ad.id == ad_id,
+        Ad.user_id == current_user.id
+    ).first()
     if not db_ad:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ad tidak ditemukan")
     db.delete(db_ad)

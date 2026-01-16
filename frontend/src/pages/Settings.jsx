@@ -20,24 +20,24 @@ const Settings = () => {
         setSuccess('');
 
         if (newPassword !== confirmPassword) {
-            setError('New passwords do not match');
+            setError('Password baru tidak cocok');
             return;
         }
 
         if (newPassword.length < 6) {
-            setError('New password must be at least 6 characters long');
+            setError('Password baru minimal 6 karakter');
             return;
         }
 
         setLoading(true);
         try {
             await authApi.changePassword(oldPassword, newPassword);
-            setSuccess('Password changed successfully!');
+            setSuccess('Password berhasil diubah!');
             setOldPassword('');
             setNewPassword('');
             setConfirmPassword('');
         } catch (err) {
-            setError(err.response?.data?.detail || 'Failed to change password. Please check your current password.');
+            setError(err.response?.data?.detail || 'Gagal mengubah password. Cek password lama Anda.');
         } finally {
             setLoading(false);
         }
@@ -64,9 +64,9 @@ const Settings = () => {
                         <Key size={24} />
                     </div>
                     <div>
-                        <h2 style={{ margin: 0 }}>Account Settings</h2>
+                        <h2 style={{ margin: 0 }}>Pengaturan Akun</h2>
                         <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                            Update your security credentials
+                            Perbarui kredensial keamanan Anda
                         </p>
                     </div>
                 </div>
@@ -87,7 +87,7 @@ const Settings = () => {
 
                 <form onSubmit={handleSubmit}>
                     <div className="form-group">
-                        <label>Current Password</label>
+                        <label>Password Saat Ini</label>
                         <div style={{ position: 'relative' }}>
                             <Lock size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                             <input 
@@ -109,7 +109,7 @@ const Settings = () => {
                     </div>
 
                     <div className="form-group">
-                        <label>New Password</label>
+                        <label>Password Baru</label>
                         <div style={{ position: 'relative' }}>
                             <Lock size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                             <input 
@@ -131,7 +131,7 @@ const Settings = () => {
                     </div>
 
                     <div className="form-group">
-                        <label>Confirm New Password</label>
+                        <label>Konfirmasi Password Baru</label>
                         <div style={{ position: 'relative' }}>
                             <Lock size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                             <input 
@@ -151,7 +151,7 @@ const Settings = () => {
                         disabled={loading}
                         style={{ width: '100%', marginTop: '1rem', height: '45px' }}
                     >
-                        {loading ? 'Changing Password...' : 'Update Password'}
+                        {loading ? 'Mengubah Password...' : 'Perbarui Password'}
                     </button>
                 </form>
             </Motion.div>
