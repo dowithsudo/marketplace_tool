@@ -7,7 +7,8 @@ import {
   BarChart3, 
   Settings,
   LayoutDashboard,
-  LogOut
+  LogOut,
+  FileUp
 } from 'lucide-react';
 
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -18,6 +19,7 @@ import Materials from './pages/Materials';
 import Products from './pages/Products';
 import Marketplaces from './pages/Marketplaces';
 import AdsPerformance from './pages/AdsPerformance';
+import SalesImport from './pages/SalesImport';
 import SettingsPage from './pages/Settings';
 
 const Navbar = () => {
@@ -49,6 +51,10 @@ const Navbar = () => {
               <NavLink to="/ads" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
                 <BarChart3 size={18} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
                 Iklan
+              </NavLink>
+              <NavLink to="/sales-import" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
+                <FileUp size={18} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+                Laporan
               </NavLink>
             </div>
           )}
@@ -92,6 +98,7 @@ const AppContent = () => {
             <Route path="/products" element={<Products />} />
             <Route path="/marketplaces" element={<Marketplaces />} />
             <Route path="/ads" element={<AdsPerformance />} />
+            <Route path="/sales-import" element={<SalesImport />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Routes>
         </div>

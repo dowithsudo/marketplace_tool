@@ -16,6 +16,7 @@ from .pricing import router as pricing_router
 from .ads import router as ads_router
 from .decision import router as decision_router
 from .extra_costs import router as extra_costs_router
+from .imports import router as imports_router
 
 __all__ = [
     "auth_router",
@@ -32,5 +33,6 @@ __all__ = [
     "pricing_router",
     "ads_router",
     "decision_router",
-    "extra_costs_router"
+    "extra_costs_router",
+    "imports_router"
 ]

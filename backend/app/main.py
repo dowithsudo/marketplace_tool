@@ -20,7 +20,8 @@ from .routers import (
     pricing_router,
     ads_router,
     decision_router,
-    extra_costs_router
+    extra_costs_router,
+    imports_router
 )
 
 # Create database tables
@@ -64,6 +65,7 @@ app.include_router(pricing_router)
 app.include_router(ads_router)
 app.include_router(decision_router)
 app.include_router(extra_costs_router)
+app.include_router(imports_router)
 
 
 @app.get("/")

@@ -20,3 +20,4 @@ class Store(Base):
     marketplace = relationship("Marketplace", back_populates="stores")
     store_products = relationship("StoreProduct", back_populates="store", cascade="all, delete-orphan", overlaps="store_products")
     ads = relationship("Ad", back_populates="store", cascade="all, delete-orphan", overlaps="ads")
+    performances = relationship("StorePerformance", back_populates="store", cascade="all, delete-orphan")

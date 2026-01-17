@@ -132,4 +132,15 @@ export const decisionApi = {
   get: (storeId, productId) => api.get(`/decision/${storeId}/${productId}`),
 };
 
+export const importsApi = {
+  importShopeeSales: (storeId, file) => {
+    const formData = new FormData();
+    formData.append("store_id", storeId);
+    formData.append("file", file);
+    return api.post("/imports/shopee-sales", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+};
+
 export default api;
