@@ -31,6 +31,7 @@ class AdUpdate(BaseModel):
 class AdResponse(AdBase):
     id: int
     roas: float | None = None  # gmv / spend
+    acos: float | None = None  # spend / gmv
     aov: float | None = None   # gmv / orders
     cpa: float | None = None   # spend / orders
     tacos: float | None = None # spend / total_sales

@@ -81,6 +81,7 @@ export const storesApi = {
   getAll: (marketplaceId) =>
     api.get("/stores", { params: { marketplace_id: marketplaceId } }),
   create: (data) => api.post("/stores", data),
+  update: (id, data) => api.put(`/stores/${id}`, data),
   delete: (id) => api.delete(`/stores/${id}`),
 };
 
@@ -106,6 +107,7 @@ export const adsApi = {
 export const marketplaceCostTypesApi = {
   getAll: () => api.get("/marketplace-cost-types"),
   create: (data) => api.post("/marketplace-cost-types", data),
+  update: (id, data) => api.put(`/marketplace-cost-types/${id}`, data),
   delete: (id) => api.delete(`/marketplace-cost-types/${id}`),
 };
 
@@ -115,6 +117,7 @@ export const storeProductMarketplaceCostsApi = {
       params: { store_product_id: storeProductId },
     }),
   create: (data) => api.post("/store-product-marketplace-costs", data),
+  update: (id, data) => api.put(`/store-product-marketplace-costs/${id}`, data),
   delete: (id) => api.delete(`/store-product-marketplace-costs/${id}`),
 };
 

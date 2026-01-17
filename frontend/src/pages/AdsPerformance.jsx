@@ -375,6 +375,7 @@ const AdsPerformance = () => {
                       <th>Hasil (GMV)</th>
                       <th>Order</th>
                       <th>ROAS (Efektivitas)</th>
+                      <th>ACoS (Biaya Iklan)</th>
                       <th>Performa vs BEP</th>
                       <th>TACoS (Kesehatan)</th>
                       <th>Biaya/Order (CPA)</th>
@@ -395,13 +396,17 @@ const AdsPerformance = () => {
                               {formatNumber(ad.roas)}x
                             </span>
                           </td>
+                          <td style={{ fontWeight: '600', color: ad.acos > 0.2 ? '#ef4444' : ad.acos < 0.1 ? '#22c55e' : '#f59e0b' }}>
+                            {ad.acos ? formatDecimalPercent(ad.acos) : '-'}
+                          </td>
                           <td>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: trend.color }}>
                               {trend.icon} {trend.text}
                             </div>
                           </td>
                           <td style={{ fontWeight: '600', color: (ad.tacos && ad.tacos > 0.2) ? '#ef4444' : (ad.tacos && ad.tacos < 0.1) ? '#22c55e' : '#f59e0b' }}>
-                            {ad.tacos ? formatDecimalPercent(ad.tacos) : '-'}
+                            {ad.tacos ? formatDecimalPercent(ad.tacos) : (ad.acos ? formatDecimalPercent(ad.acos) : '-')}
+                            {!ad.tacos && ad.acos && <small style={{ display: 'block', fontSize: '10px', color: '#94a3b8' }}>(Same as ACoS)</small>}
                           </td>
                           <td title={ad.cpa} style={{ color: ad.cpa > decision.max_cpa ? '#ef4444' : 'inherit' }}>
                              {formatCurrency(ad.cpa)}

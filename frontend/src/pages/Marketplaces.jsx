@@ -49,6 +49,7 @@ const Marketplaces = () => {
   const [storeForm, setStoreForm] = useState({ id: '', marketplace_id: '', name: '' });
   const [marketplaceForm, setMarketplaceForm] = useState({ id: '', name: '' });
   const [editingMarketplaceId, setEditingMarketplaceId] = useState(null);
+  const [editingStoreId, setEditingStoreId] = useState(null);
   const [costTypeForm, setCostTypeForm] = useState({ name: '', calc_type: 'percent' });
   const [costForm, setCostForm] = useState({ cost_type_id: '', value: '' });
   const [pricingForm, setPricingForm] = useState({ product_id: '', harga_jual: '' });
@@ -57,6 +58,8 @@ const Marketplaces = () => {
   const [storeProducts, setStoreProducts] = useState([]);
   const [pricingAnalysis, setPricingAnalysis] = useState(null);
   const [editingSpId, setEditingSpId] = useState(null);
+  const [editingCostTypeId, setEditingCostTypeId] = useState(null);
+  const [editingCostId, setEditingCostId] = useState(null);
 
   const fetchBaseData = async () => {
     try {
@@ -133,15 +136,22 @@ const Marketplaces = () => {
       return;
     }
     try {
-      await storeProductMarketplaceCostsApi.create({
-        store_product_id: selectedStoreProduct.id,
-        ...costForm
-      });
+      if (editingCostId) {
+        await storeProductMarketplaceCostsApi.update(editingCostId, {
+          ...costForm
+        });
+      } else {
+        await storeProductMarketplaceCostsApi.create({
+          store_product_id: selectedStoreProduct.id,
+          ...costForm
+        });
+      }
       const costs = await storeProductMarketplaceCostsApi.getAll(selectedStoreProduct.id);
       setSpCosts(costs.data);
       setCostForm({ cost_type_id: '', value: '' });
+      setEditingCostId(null);
     } catch (error) {
-      alert(error.response?.data?.detail || "Gagal menambah biaya");
+      alert(error.response?.data?.detail || "Gagal menyimpan biaya");
     }
   };
 
@@ -198,61 +208,73 @@ const Marketplaces = () => {
     }
   };
 
-  const handleDeleteMarketplace = async (e, id) => {
-    e.preventDefault();
-    e.stopPropagation();
-    console.log("Requesting delete for marketplace ID:", id);
-    
-    if (!window.confirm(`Apakah Anda yakin ingin menghapus marketplace "${id}"? Tindakan ini tidak dapat dibatalkan.`)) return;
-    
-    try {
-      await marketplacesApi.delete(id);
-      console.log("Marketplace deleted successfully");
-      fetchBaseData();
-    } catch (error) {
-      console.error("Failed to delete marketplace:", error);
-      alert(error.response?.data?.detail || "Gagal menghapus marketplace");
-    }
-  };
+
 
   const handleCostTypeSubmit = async (e) => {
     e.preventDefault();
     try {
-      await marketplaceCostTypesApi.create({
-        id: costTypeForm.name.toLowerCase().replace(/\s+/g, '-'),
-        name: costTypeForm.name,
-        calc_type: costTypeForm.calc_type,
-        apply_to: 'price'
-      });
+      if (editingCostTypeId) {
+        await marketplaceCostTypesApi.update(editingCostTypeId, {
+          name: costTypeForm.name,
+          calc_type: costTypeForm.calc_type
+        });
+      } else {
+        await marketplaceCostTypesApi.create({
+          id: costTypeForm.name.toLowerCase().replace(/\s+/g, '-'),
+          name: costTypeForm.name,
+          calc_type: costTypeForm.calc_type,
+          apply_to: 'price'
+        });
+      }
       const ctypes = await marketplaceCostTypesApi.getAll();
       setCostTypes(ctypes.data);
       setShowCostTypeModal(false);
       setCostTypeForm({ name: '', calc_type: 'percent' });
+      setEditingCostTypeId(null);
     } catch (err) {
-      alert(err.response?.data?.detail || "Gagal membuat tipe biaya");
+      alert(err.response?.data?.detail || "Gagal menyimpan tipe biaya");
     }
   };
 
   // Delete Modal State
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [itemToDelete, setItemToDelete] = useState(null); // { id: '...', name: '...' }
+  const [itemToDelete, setItemToDelete] = useState(null); // { id: '...', name: '...', type: 'marketplace' | 'store' | 'cost' | 'cost_type' }
 
-  const handleRequestDelete = (e, m) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setItemToDelete(m);
+  const handleRequestDelete = (e, m, type = 'marketplace') => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    setItemToDelete({ ...m, type });
     setShowDeleteModal(true);
   };
 
   const confirmDelete = async () => {
     if (!itemToDelete) return;
     try {
-      await marketplacesApi.delete(itemToDelete.id);
+      if (itemToDelete.type === 'marketplace') {
+        await marketplacesApi.delete(itemToDelete.id);
+      } else if (itemToDelete.type === 'store') {
+        await storesApi.delete(itemToDelete.id);
+      } else if (itemToDelete.type === 'cost') {
+        await storeProductMarketplaceCostsApi.delete(itemToDelete.id);
+        if (selectedStoreProduct) {
+           const costs = await storeProductMarketplaceCostsApi.getAll(selectedStoreProduct.id);
+           setSpCosts(costs.data);
+        }
+      } else if (itemToDelete.type === 'cost_type') {
+         await marketplaceCostTypesApi.delete(itemToDelete.id);
+         const res = await marketplaceCostTypesApi.getAll();
+         setCostTypes(res.data);
+      }
+      
+      // Always fetch base data to keep lists synced
       fetchBaseData();
       setShowDeleteModal(false);
       setItemToDelete(null);
     } catch (error) {
-       alert(error.response?.data?.detail || "Gagal menghapus marketplace");
+       console.error("Delete failed:", error);
+       alert(error.response?.data?.detail || `Gagal menghapus data. Mohon pastikan tidak ada data terkait.`);
     }
   };
 
@@ -275,7 +297,11 @@ const Marketplaces = () => {
             }}>
               <ShoppingBag size={18} /> Tambah Marketplace
             </button>
-            <button className="btn btn-primary" onClick={() => setShowStoreModal(true)}>
+            <button className="btn btn-primary" onClick={() => {
+              setEditingStoreId(null);
+              setStoreForm({ id: '', marketplace_id: '', name: '' });
+              setShowStoreModal(true);
+            }}>
               <Plus size={18} /> Tambah Toko
             </button>
           </div>
@@ -316,12 +342,16 @@ const Marketplaces = () => {
             <motion.div key={store.id} className="glass-card" style={{ padding: '1.5rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
                 <span className="badge badge-info">{store.marketplace_name}</span>
-                <button className="btn btn-danger" style={{ padding: '0.4rem' }} onClick={async () => {
-                  if(window.confirm("Hapus toko?")) {
-                    await storesApi.delete(store.id);
-                    fetchBaseData();
-                  }
-                }}><Trash2 size={14} /></button>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                   <button className="btn btn-secondary" style={{ padding: '0.4rem' }} onClick={() => {
+                     setStoreForm({ id: store.id, marketplace_id: store.marketplace_id, name: store.name });
+                     setEditingStoreId(store.id);
+                     setShowStoreModal(true);
+                   }}><Edit2 size={14} /></button>
+                   <button className="btn btn-danger" style={{ padding: '0.4rem' }} onClick={(e) => handleRequestDelete(e, store, 'store')}>
+                     <Trash2 size={14} />
+                   </button>
+                </div>
               </div>
               <h3 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Store size={20} color="#6366f1" />
@@ -339,22 +369,22 @@ const Marketplaces = () => {
       {/* Delete Confirmation Modal */}
       <AnimatePresence>
         {showDeleteModal && (
-          <div style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowDeleteModal(false)}
-              style={{ position: 'absolute', inset: 0, background: 'rgba(0, 0, 0, 0.6)', backdropFilter: 'blur(4px)' }} />
+          <div style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => { setShowDeleteModal(false); setItemToDelete(null); }}
+              style={{ position: 'absolute', inset: 0, background: 'rgba(0, 0, 0, 0.7)', backdropFilter: 'blur(6px)' }} />
              <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-               className="glass-card" style={{ position: 'relative', width: '100%', maxWidth: '400px', padding: '2rem', zIndex: 100000, border: '1px solid rgba(239, 68, 68, 0.3)' }}>
+               className="glass-card" style={{ position: 'relative', width: '100%', maxWidth: '400px', padding: '2rem', zIndex: 1000000, border: '1px solid rgba(239, 68, 68, 0.4)', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}>
                
                <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
                  <div style={{ background: 'rgba(239, 68, 68, 0.1)', width: '64px', height: '64px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem' }}>
                     <Trash2 size={32} color="#ef4444" />
                  </div>
-                 <h3 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Hapus Marketplace?</h3>
-                 <p style={{ color: '#94a3b8' }}>Anda akan menghapus <strong>{itemToDelete?.name}</strong> (ID: {itemToDelete?.id}). Tindakan ini tidak dapat dibatalkan.</p>
+                 <h3 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Hapus {itemToDelete?.type?.replace('_', ' ')}?</h3>
+                 <p style={{ color: '#94a3b8' }}>Anda akan menghapus <strong>{itemToDelete?.name}</strong>. Tindakan ini tidak dapat dibatalkan.</p>
                </div>
 
                <div style={{ display: 'flex', gap: '1rem' }}>
-                 <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowDeleteModal(false)}>Batal</button>
+                 <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => { setShowDeleteModal(false); setItemToDelete(null); }}>Batal</button>
                  <button className="btn btn-danger" style={{ flex: 1 }} onClick={confirmDelete}>Hapus Sekarang</button>
                </div>
              </motion.div>
@@ -498,16 +528,43 @@ const Marketplaces = () => {
                       <>
                         <form onSubmit={handleAddCost} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
                           <select className="form-control" value={costForm.cost_type_id} 
-                            onChange={(e) => setCostForm({...costForm, cost_type_id: e.target.value})} required>
+                            onChange={(e) => setCostForm({...costForm, cost_type_id: e.target.value})} required disabled={!!editingCostId}>
                             <option value="">Pilih Tipe Biaya</option>
                             {costTypes.map(ct => (
                               <option key={ct.id} value={ct.id}>{ct.name} ({ct.calc_type === 'percent' ? '%' : 'Rp'})</option>
                             ))}
                           </select>
+                          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                            <input 
+                              type="number" 
+                              step="0.0001" 
+                              className="form-control" 
+                              style={{ paddingRight: '3rem' }}
+                              placeholder={
+                                costTypes.find(ct => ct.id === costForm.cost_type_id)?.calc_type === 'percent' 
+                                ? "Contoh: 0.05 (untuk 5%)" 
+                                : "Contoh: 5000"
+                              } 
+                              value={costForm.value} 
+                              onChange={(e) => setCostForm({...costForm, value: e.target.value})} 
+                              required 
+                            />
+                            <span style={{ position: 'absolute', right: '1rem', color: '#94a3b8', fontWeight: 'bold' }}>
+                              {costTypes.find(ct => ct.id === costForm.cost_type_id)?.calc_type === 'percent' ? '%' : 'Rp'}
+                            </span>
+                          </div>
                           <div style={{ display: 'flex', gap: '0.5rem' }}>
-                            <input type="number" step="0.0001" className="form-control" placeholder={costForm.cost_type_id?.toLowerCase().includes('admin') ? "Nilai (contoh: 0.05 utk 5%)" : "Nilai (Rp atau %)"} 
-                              value={costForm.value} onChange={(e) => setCostForm({...costForm, value: e.target.value})} required />
-                            <button type="submit" className="btn btn-primary" style={{ padding: '0.8rem 1.2rem' }} title="Add fee to product"><Plus size={20} /></button>
+                            <button type="submit" className="btn btn-primary" style={{ flex: 1, padding: '0.8rem' }}>
+                              {editingCostId ? <Save size={18} /> : <Plus size={18} />} {editingCostId ? 'Simpan Perubahan' : 'Tambah Biaya'}
+                            </button>
+                            {editingCostId && (
+                              <button type="button" className="btn btn-secondary" onClick={() => {
+                                setEditingCostId(null);
+                                setCostForm({ cost_type_id: '', value: '' });
+                              }}>
+                                <Undo2 size={18} />
+                              </button>
+                            )}
                           </div>
                         </form>
 
@@ -521,13 +578,18 @@ const Marketplaces = () => {
                                   {cost.calc_type === 'percent' && ` of ${cost.apply_to === 'price' ? 'Base' : 'After Disc'}`}
                                 </p>
                               </div>
-                              <button onClick={async () => {
-                                if(window.confirm("Hapus biaya ini?")) {
-                                  await storeProductMarketplaceCostsApi.delete(cost.id);
-                                  const costs = await storeProductMarketplaceCostsApi.getAll(selectedStoreProduct.id);
-                                  setSpCosts(costs.data);
-                                }
-                              }} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}><Trash2 size={16} /></button>
+                              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                <button className="btn btn-secondary" style={{ padding: '0.4rem', border: 'none', background: 'transparent' }} onClick={() => {
+                                  setCostForm({ cost_type_id: cost.cost_type_id, value: cost.value });
+                                  setEditingCostId(cost.id);
+                                }}>
+                                  <Edit2 size={14} />
+                                </button>
+                                <button onClick={() => handleRequestDelete(null, { id: cost.id, name: cost.cost_type_name }, 'cost' )} 
+                                  style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}>
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
                             </div>
                           ))}
                           {spCosts.length === 0 && (
@@ -647,19 +709,37 @@ const Marketplaces = () => {
               style={{ position: 'absolute', inset: 0, background: 'rgba(0, 0, 0, 0.6)', backdropFilter: 'blur(4px)' }} />
             <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
               className="glass-card" style={{ position: 'relative', width: '100%', maxWidth: '400px', padding: '2rem', zIndex: 10000 }}>
-              <h3 style={{ marginBottom: '1.5rem' }}>Tambah Toko Baru</h3>
+             <h3 style={{ marginBottom: '1.5rem' }}>{editingStoreId ? 'Edit Toko' : 'Tambah Toko Baru'}</h3>
               <form onSubmit={async (e) => {
                 e.preventDefault();
                 try {
-                  await storesApi.create(storeForm);
+                  if (editingStoreId) {
+                    await storesApi.update(editingStoreId, {
+                       name: storeForm.name,
+                       marketplace_id: storeForm.marketplace_id
+                    });
+                  } else {
+                    // Auto-generate ID if empty
+                    const idToUse = storeForm.id || `${storeForm.marketplace_id}-${storeForm.name.toLowerCase().replace(/\s+/g, '-')}`;
+                    await storesApi.create({ ...storeForm, id: idToUse });
+                  }
                   fetchBaseData();
                   setShowStoreModal(false);
                   setStoreForm({ id: '', marketplace_id: '', name: '' });
-                } catch { alert("Gagal menambah toko"); }
+                  setEditingStoreId(null);
+                } catch (error) { 
+                  const detail = error.response?.data?.detail;
+                  alert(detail ? `Gagal: ${detail}` : "Gagal menyimpan toko."); 
+                }
               }}>
                 <div className="form-group">
-                  <label className="form-label">ID Toko</label>
-                  <input type="text" className="form-control" placeholder="contoh: shopee-toko-1" value={storeForm.id} onChange={(e) => setStoreForm({...storeForm, id: e.target.value})} required />
+                  <label className="form-label">ID Toko (Harus Unik)</label>
+                  <input type="text" className="form-control" placeholder="contoh: shopee-toko-1 (opsional)" 
+                    value={storeForm.id} 
+                    onChange={(e) => setStoreForm({...storeForm, id: e.target.value})} 
+                    disabled={!!editingStoreId}
+                  />
+                  {!editingStoreId && <small style={{ color: '#94a3b8', fontSize: '0.75rem' }}>Kosongkan untuk generate otomatis. ID tidak boleh sama dengan toko lain.</small>}
                 </div>
                 <div className="form-group">
                   <label className="form-label">Marketplace</label>
@@ -699,22 +779,22 @@ const Marketplaces = () => {
                       <p style={{ fontSize: '0.9rem', fontWeight: '500' }}>{ct.name}</p>
                       <p style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{ct.calc_type === 'percent' ? 'Percentage' : 'Fixed/Nominal'}</p>
                     </div>
-                    <button 
-                      onClick={async () => {
-                        if (window.confirm(`Hapus tipe biaya "${ct.name}"? Ini juga akan menghapus biaya ini dari semua produk.`)) {
-                          try {
-                            await marketplaceCostTypesApi.delete(ct.id);
-                            const res = await marketplaceCostTypesApi.getAll();
-                            setCostTypes(res.data);
-                          } catch (err) {
-                            alert(err.response?.data?.detail || "Gagal menghapus tipe biaya");
-                          }
-                        }
-                      }}
-                      style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button className="btn btn-secondary" style={{ padding: '0.4rem', border: 'none', background: 'transparent' }} onClick={() => {
+                         setCostTypeForm({ name: ct.name, calc_type: ct.calc_type });
+                         setEditingCostTypeId(ct.id);
+                         setShowTypeManager(false);
+                         setShowCostTypeModal(true);
+                      }}>
+                        <Edit2 size={16} />
+                      </button>
+                      <button 
+                        onClick={() => handleRequestDelete(null, { id: ct.id, name: ct.name }, 'cost_type' )}
+                        style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -731,7 +811,7 @@ const Marketplaces = () => {
               style={{ position: 'absolute', inset: 0, background: 'rgba(0, 0, 0, 0.6)', backdropFilter: 'blur(4px)' }} />
             <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
               className="glass-card" style={{ position: 'relative', width: '100%', maxWidth: '400px', padding: '2rem', zIndex: 11001 }}>
-              <h3 style={{ marginBottom: '1.5rem' }}>Buat Komponen Biaya Baru</h3>
+              <h3 style={{ marginBottom: '1.5rem' }}>{editingCostTypeId ? 'Edit Komponen Biaya' : 'Buat Komponen Biaya Baru'}</h3>
               <form onSubmit={handleCostTypeSubmit}>
                 <div className="form-group">
                   <label className="form-label">Nama Komponen</label>
@@ -755,8 +835,12 @@ const Marketplaces = () => {
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
-                  <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowCostTypeModal(false)}>Batal</button>
-                  <button type="submit" className="btn btn-primary" style={{ flex: 1 }}><Save size={18} /> Simpan</button>
+                  <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => {
+                    setShowCostTypeModal(false);
+                    setEditingCostTypeId(null);
+                    setCostTypeForm({ name: '', calc_type: 'percent' });
+                  }}>Batal</button>
+                  <button type="submit" className="btn btn-primary" style={{ flex: 1 }}><Save size={18} /> {editingCostTypeId ? 'Simpan Update' : 'Simpan'}</button>
                 </div>
               </form>
             </motion.div>
