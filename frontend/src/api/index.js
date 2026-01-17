@@ -141,6 +141,16 @@ export const importsApi = {
       headers: { "Content-Type": "multipart/form-data" },
     });
   },
+  importShopeeProductSales: (storeId, file) => {
+    const formData = new FormData();
+    formData.append("store_id", storeId);
+    formData.append("file", file);
+    return api.post("/imports/shopee-products", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+  getPerformance: (params) => api.get("/imports/performance", { params }),
+  getReports: (params) => api.get("/imports/reports", { params }),
 };
 
 export default api;

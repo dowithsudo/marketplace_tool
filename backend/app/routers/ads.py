@@ -3,10 +3,11 @@ Ads Router - CRUD operations for advertising data
 """
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from typing import List
 
 from ..database import get_db
-from ..models import Ad, Store, Product, User
+from ..models import Ad, Store, Product, ProductPerformance, User
 from ..schemas.ad import AdCreate, AdUpdate, AdResponse
 from ..deps import get_current_user
 
@@ -48,7 +49,7 @@ def create_ad(
     db.commit()
     db.refresh(db_ad)
     
-    return _build_ad_response(db_ad)
+    return _build_ad_response(db_ad, db)
 
 
 @router.get("", response_model=List[AdResponse])
@@ -65,7 +66,7 @@ def get_ads(
     if product_id:
         query = query.filter(Ad.product_id == product_id)
     
-    return [_build_ad_response(ad) for ad in query.all()]
+    return [_build_ad_response(ad, db) for ad in query.all()]
 
 
 @router.get("/{ad_id}", response_model=AdResponse)
@@ -81,7 +82,7 @@ def get_ad(
     ).first()
     if not ad:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ad tidak ditemukan")
-    return _build_ad_response(ad)
+    return _build_ad_response(ad, db)
 
 
 @router.put("/{ad_id}", response_model=AdResponse)
@@ -104,7 +105,7 @@ def update_ad(
     
     db.commit()
     db.refresh(db_ad)
-    return _build_ad_response(db_ad)
+    return _build_ad_response(db_ad, db)
 
 
 @router.delete("/{ad_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -124,21 +125,35 @@ def delete_ad(
     db.commit()
 
 
-def _build_ad_response(ad: Ad) -> AdResponse:
+def _build_ad_response(ad: Ad, db: Session = None) -> AdResponse:
     """Build ad response with derived metrics"""
     roas = ad.gmv / ad.spend if ad.spend > 0 else None
     acos = ad.spend / ad.gmv if ad.gmv > 0 else None
     aov = ad.gmv / ad.orders if ad.orders > 0 else None
     cpa = ad.spend / ad.orders if ad.orders > 0 else None
     
+    total_sales = ad.total_sales
+    
+    # If total_sales is not provided, try to find it in ProductPerformance
+    if not total_sales and db:
+        # Sum revenue for this product in this store (for today or recent period)
+        # For simplicity, we take the most recent record or sum last 30 days
+        perf_revenue = db.query(func.sum(ProductPerformance.revenue)).filter(
+            ProductPerformance.product_id == ad.product_id,
+            ProductPerformance.store_id == ad.store_id,
+            ProductPerformance.user_id == ad.user_id
+        ).scalar()
+        if perf_revenue:
+            total_sales = float(perf_revenue)
+
     tacos = None
-    if ad.total_sales and ad.total_sales > 0:
-        tacos = ad.spend / ad.total_sales
+    if total_sales and total_sales > 0:
+        tacos = ad.spend / total_sales
 
     return AdResponse(
         id=ad.id, store_id=ad.store_id, product_id=ad.product_id,
         campaign=ad.campaign, spend=ad.spend, gmv=ad.gmv, orders=ad.orders,
-        total_sales=ad.total_sales,
+        total_sales=total_sales,
         roas=round(roas, 2) if roas else None,
         acos=round(acos, 4) if acos else None,
         aov=round(aov, 2) if aov else None,

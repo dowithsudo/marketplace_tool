@@ -19,7 +19,7 @@ import Materials from './pages/Materials';
 import Products from './pages/Products';
 import Marketplaces from './pages/Marketplaces';
 import AdsPerformance from './pages/AdsPerformance';
-import SalesImport from './pages/SalesImport';
+import Reports from './pages/Reports';
 import SettingsPage from './pages/Settings';
 
 const Navbar = () => {
@@ -52,7 +52,7 @@ const Navbar = () => {
                 <BarChart3 size={18} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
                 Iklan
               </NavLink>
-              <NavLink to="/sales-import" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
+              <NavLink to="/reports" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
                 <FileUp size={18} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
                 Laporan
               </NavLink>
@@ -98,7 +98,7 @@ const AppContent = () => {
             <Route path="/products" element={<Products />} />
             <Route path="/marketplaces" element={<Marketplaces />} />
             <Route path="/ads" element={<AdsPerformance />} />
-            <Route path="/sales-import" element={<SalesImport />} />
+            <Route path="/reports" element={<Reports />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Routes>
         </div>

@@ -7,6 +7,7 @@ import {
   Package, 
   TrendingUp, 
   AlertTriangle,
+  AlertCircle,
   CheckCircle2,
   Calculator,
   ArrowRight,
@@ -15,13 +16,23 @@ import {
   Zap,
   DollarSign
 } from 'lucide-react';
-import { materialsApi, productsApi, storesApi } from '../api';
-import { formatCurrency, formatNumber, formatRawPercent } from '../utils/formatters';
+import { materialsApi, productsApi, storesApi, importsApi } from '../api';
+import { formatCurrency, formatNumber, formatRawPercent, formatDecimalPercent } from '../utils/formatters';
 import { useNavigate } from 'react-router-dom';
+import { 
+  ResponsiveContainer, 
+  AreaChart, 
+  Area, 
+  XAxis, 
+  YAxis, 
+  Tooltip as ChartTooltip, 
+  CartesianGrid 
+} from 'recharts';
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const [stats, setStats] = useState({ materials: 0, products: 0, stores: 0 });
+  const [performance, setPerformance] = useState([]);
   const [health, setHealth] = useState({ status: 'loading', riskCount: 0, goodCount: 0 });
   const [loading, setLoading] = useState(true);
   
@@ -39,10 +50,13 @@ const Dashboard = () => {
   const fetchDashboardData = async () => {
     try {
       // Parallel lighter fetch
-      const [mRes, pRes, sRes] = await Promise.all([
+      const [mRes, pRes, sRes, perfRes] = await Promise.all([
         materialsApi.getAll(),
         productsApi.getAll(),
-        storesApi.getAll()
+        storesApi.getAll(),
+        importsApi.getPerformance({ 
+          start_date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] 
+        })
       ]);
 
       setStats({
@@ -50,6 +64,8 @@ const Dashboard = () => {
         products: pRes.data.length,
         stores: sRes.data.length
       });
+
+      setPerformance(perfRes.data);
 
       // Simple explicit rule-based check on loaded data
       let risks = 0;
@@ -62,6 +78,11 @@ const Dashboard = () => {
         risks++;
       } else {
         good++;
+      }
+
+      // Check for performance data
+      if (perfRes.data.length === 0) {
+        issues.push({ type: 'info', msg: "Belum ada data penjualan. Impor laporan Shopee untuk melihat analisis.", link: '/sales-import' });
       }
 
       // Check Products Setup (Approximation)
@@ -86,6 +107,15 @@ const Dashboard = () => {
       setLoading(false);
     }
   };
+
+  const totalRevenue = performance.reduce((acc, curr) => acc + curr.revenue, 0); // Net
+  const totalGross = performance.reduce((acc, curr) => acc + (curr.gross_revenue || curr.revenue), 0);
+  const totalOrders = performance.reduce((acc, curr) => acc + curr.orders, 0);
+  const avgConv = performance.length > 0 
+    ? performance.reduce((acc, curr) => acc + curr.conversion_rate, 0) / performance.length 
+    : 0;
+  
+  const cancelRate = totalGross > 0 ? (1 - (totalRevenue / totalGross)) : 0;
 
   const calculateQuickProfit = () => {
     const price = parseFloat(calcForm.price) || 0;
@@ -147,6 +177,98 @@ const Dashboard = () => {
         </button>
       </header>
       
+      {/* Performance Overview (New) */}
+      {performance.length > 0 && (
+        <div className="glass-card" style={{ padding: '2rem', marginBottom: '2rem', position: 'relative', overflow: 'hidden' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '2rem', marginBottom: '2.5rem' }}>
+            <div>
+              <p className="metric-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <DollarSign size={14} color="#22c55e" /> NET REVENUE (30 HARI)
+              </p>
+              <p style={{ fontSize: '2rem', fontWeight: '800', color: '#fff' }}>{formatCurrency(totalRevenue)}</p>
+              <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '0.4rem' }}>
+                Gross: {formatCurrency(totalGross)}
+              </p>
+            </div>
+            <div>
+              <p className="metric-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <AlertCircle size={14} color="#ef4444" /> CANCEL RATE
+              </p>
+              <p style={{ fontSize: '2rem', fontWeight: '800', color: cancelRate > 0.1 ? '#ef4444' : '#fff' }}>
+                {formatDecimalPercent(cancelRate)}
+              </p>
+              <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '0.4rem' }}>
+                Selisih: {formatCurrency(totalGross - totalRevenue)}
+              </p>
+            </div>
+            <div>
+              <p className="metric-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <ShoppingBag size={14} color="#3b82f6" /> TOTAL PESANAN
+              </p>
+              <p style={{ fontSize: '2rem', fontWeight: '800', color: '#fff' }}>{totalOrders}</p>
+            </div>
+            <div>
+              <p className="metric-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <TrendingUp size={14} color="#ec4899" /> AVG CONVERSION
+              </p>
+              <p style={{ fontSize: '2rem', fontWeight: '800', color: avgConv > 0.05 ? '#22c55e' : '#f59e0b' }}>
+                {formatDecimalPercent(avgConv)}
+              </p>
+            </div>
+          </div>
+
+          <div style={{ height: '300px', width: '100%', marginTop: '1rem' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={performance}>
+                <defs>
+                  <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                <XAxis 
+                  dataKey="date" 
+                  stroke="#64748b" 
+                  fontSize={12} 
+                  tickFormatter={(str) => {
+                    const date = new Date(str);
+                    return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+                  }}
+                />
+                <YAxis hide />
+                <ChartTooltip 
+                  contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
+                  labelStyle={{ color: '#94a3b8', marginBottom: '4px' }}
+                  formatter={(value, name) => [
+                    name === 'revenue' ? formatCurrency(value) : value, 
+                    name === 'revenue' ? 'Omzet' : 'Pesanan'
+                  ]}
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="revenue" 
+                  name="Net Revenue"
+                  stroke="#6366f1" 
+                  strokeWidth={3}
+                  fillOpacity={1} 
+                  fill="url(#colorRev)" 
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="gross_revenue" 
+                  name="Gross Revenue"
+                  stroke="#94a3b8" 
+                  strokeWidth={2}
+                  strokeDasharray="5 5"
+                  fill="transparent"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
       <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '2rem' }}>
         
         {/* Left Column: Health & Tasks */}

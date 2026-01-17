@@ -13,7 +13,9 @@ from .marketplace_cost_type import MarketplaceCostType
 from .store_product_marketplace_cost import StoreProductMarketplaceCost
 from .ad import Ad
 from .product_extra_cost import ProductExtraCost
-from .store_performance import StorePerformance
+from .store_performance import StorePerformance, SalesReport
+
+from .product_performance import ProductPerformance
 
 __all__ = [
     "User",
@@ -28,5 +30,7 @@ __all__ = [
     "StoreProductMarketplaceCost",
     "Ad",
     "ProductExtraCost",
-    "StorePerformance"
+    "StorePerformance",
+    "ProductPerformance",
+    "SalesReport"
 ]
