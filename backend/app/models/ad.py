@@ -14,6 +14,7 @@ class Ad(Base):
     spend = Column(Integer, nullable=False)
     gmv = Column(Integer, nullable=False)
     orders = Column(Integer, nullable=False)
+    total_sales = Column(Integer, nullable=True, default=0)  # Total sales (organic + ads) for TACoS
 
     __table_args__ = (
         ForeignKeyConstraint(['store_id', 'user_id'], ['stores.id', 'stores.user_id']),

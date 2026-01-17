@@ -37,7 +37,7 @@ const AdsPerformance = () => {
   const [showAddAdModal, setShowAddAdModal] = useState(false);
   
   // Forms
-  const [adForm, setAdForm] = useState({ campaign: '', spend: '', gmv: '', orders: '' });
+  const [adForm, setAdForm] = useState({ campaign: '', spend: '', gmv: '', orders: '', total_sales: '' });
   const [reverseForm, setReverseForm] = useState({ target_type: 'percent', target_value: 0.15 });
   const [reverseResult, setReverseResult] = useState(null);
 
@@ -80,7 +80,7 @@ const AdsPerformance = () => {
       });
       setShowAddAdModal(false);
       handleAnalyze();
-      setAdForm({ campaign: '', spend: '', gmv: '', orders: '' });
+      setAdForm({ campaign: '', spend: '', gmv: '', orders: '', total_sales: '' });
     } catch { alert("Gagal menambah data iklan"); }
   };
 
@@ -178,6 +178,20 @@ const AdsPerformance = () => {
   return (
     <>
       <div className="animate-fade-in">
+        {/* Educational Banner */}
+        <div style={{ background: 'linear-gradient(to right, #e0e7ff, #f3e8ff)', padding: '1.5rem', borderRadius: '16px', marginBottom: '2rem', border: '1px solid #c7d2fe', display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+          <div style={{ background: '#fff', padding: '0.75rem', borderRadius: '50%', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
+            <HelpCircle size={32} color="#6366f1" />
+          </div>
+          <div>
+            <h3 style={{ color: '#4338ca', marginBottom: '0.25rem', fontSize: '1.1rem' }}>Pojok Edukasi Iklan 💡</h3>
+            <p style={{ color: '#64748b', fontSize: '0.9rem', lineHeight: '1.5' }}>
+              <strong>ROAS (Return on Ad Spend):</strong> Efektivitas iklan. Kalau 5x, berarti keluar 1rb dapet 5rb. <br/>
+              <strong>TACoS (Total Ad Cost of Sales):</strong> Kesehatan toko. Mengukur seberapa boros iklan dibanding TOTAL omzet (organik + iklan). Makin kecil, makin sehat.
+            </p>
+          </div>
+        </div>
+
         <header style={{ marginBottom: '2.5rem' }}>
           <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <BarChart3 color="#8b5cf6" />
@@ -362,6 +376,7 @@ const AdsPerformance = () => {
                       <th>Order</th>
                       <th>ROAS (Efektivitas)</th>
                       <th>Performa vs BEP</th>
+                      <th>TACoS (Kesehatan)</th>
                       <th>Biaya/Order (CPA)</th>
                       <th>Aksi</th>
                     </tr>
@@ -384,6 +399,9 @@ const AdsPerformance = () => {
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: trend.color }}>
                               {trend.icon} {trend.text}
                             </div>
+                          </td>
+                          <td style={{ fontWeight: '600', color: (ad.tacos && ad.tacos > 0.2) ? '#ef4444' : (ad.tacos && ad.tacos < 0.1) ? '#22c55e' : '#f59e0b' }}>
+                            {ad.tacos ? formatDecimalPercent(ad.tacos) : '-'}
                           </td>
                           <td title={ad.cpa} style={{ color: ad.cpa > decision.max_cpa ? '#ef4444' : 'inherit' }}>
                              {formatCurrency(ad.cpa)}
@@ -504,11 +522,19 @@ const AdsPerformance = () => {
                   <input type="number" className="form-control" value={adForm.spend} onChange={(e) => setAdForm({...adForm, spend: e.target.value})} required />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">GMV (Omzet Rp)</label>
+                  <label className="form-label">GMV Iklan (Omzet dari Iklan)</label>
                   <input type="number" className="form-control" value={adForm.gmv} onChange={(e) => setAdForm({...adForm, gmv: e.target.value})} required />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Jumlah Order</label>
+                  <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Total Omzet Toko (Opsional)</span>
+                    <small style={{ color: '#6366f1', cursor: 'help' }} title="Digunakan untuk hitung TACoS">Apa ini?</small>
+                  </label>
+                  <input type="number" className="form-control" placeholder="Iklan + Organik" value={adForm.total_sales} onChange={(e) => setAdForm({...adForm, total_sales: e.target.value})} />
+                  <small style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Isi total omzet produk ini (termasuk yang tidak dari iklan) untuk analisis TACoS.</small>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Jumlah Order Iklan</label>
                   <input type="number" className="form-control" value={adForm.orders} onChange={(e) => setAdForm({...adForm, orders: e.target.value})} required />
                 </div>
                 <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>

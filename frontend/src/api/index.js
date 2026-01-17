@@ -73,6 +73,7 @@ export const extraCostsApi = {
 export const marketplacesApi = {
   getAll: () => api.get("/marketplaces"),
   create: (data) => api.post("/marketplaces", data),
+  update: (id, data) => api.put(`/marketplaces/${id}`, data),
   delete: (id) => api.delete(`/marketplaces/${id}`),
 };
 

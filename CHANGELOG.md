@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-01-17
+
+### Added
+- **Marketplace Management UI**: Added "Daftar Marketplace" section to list all registered marketplaces.
+- **Edit Marketplace**: Ability to rename existing marketplaces.
+- **Delete Marketplace**: Ability to delete marketplaces with safety checks.
+
+### Changed
+- **Marketplace Deletion Rule**: Backend now prevents deletion of a marketplace if it has active stores linked to it.
+- **Marketplace API**: Added `PUT` endpoint for updating marketplace details.
+
 ## [2.0.0] - 2026-01-16
 
 ### Added - Fase 5: Business Intelligence & UX Enhancement

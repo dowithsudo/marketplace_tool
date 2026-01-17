@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from ..database import get_db
-from ..models import Marketplace, User
+from ..models import Marketplace, User, Store
 from ..schemas.marketplace import MarketplaceCreate, MarketplaceUpdate, MarketplaceResponse
 from ..deps import get_current_user
 
@@ -110,6 +110,18 @@ def delete_marketplace(
             detail="Marketplace tidak ditemukan"
         )
     
+    # Check for associated stores before deletion using explicit query to avoid ORM issues
+    active_stores_count = db.query(Store).filter(
+        Store.marketplace_id == marketplace_id,
+        Store.user_id == current_user.id
+    ).count()
+
+    if active_stores_count > 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot delete: There are {active_stores_count} active stores in this marketplace."
+        )
+
     db.delete(db_marketplace)
     db.commit()
 

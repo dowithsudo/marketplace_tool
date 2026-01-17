@@ -130,10 +130,16 @@ def _build_ad_response(ad: Ad) -> AdResponse:
     aov = ad.gmv / ad.orders if ad.orders > 0 else None
     cpa = ad.spend / ad.orders if ad.orders > 0 else None
     
+    tacos = None
+    if ad.total_sales and ad.total_sales > 0:
+        tacos = ad.spend / ad.total_sales
+
     return AdResponse(
         id=ad.id, store_id=ad.store_id, product_id=ad.product_id,
         campaign=ad.campaign, spend=ad.spend, gmv=ad.gmv, orders=ad.orders,
+        total_sales=ad.total_sales,
         roas=round(roas, 2) if roas else None,
         aov=round(aov, 2) if aov else None,
-        cpa=round(cpa, 2) if cpa else None
+        cpa=round(cpa, 2) if cpa else None,
+        tacos=round(tacos, 4) if tacos else None
     )

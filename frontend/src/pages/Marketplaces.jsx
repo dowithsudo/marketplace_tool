@@ -25,7 +25,7 @@ import {
   storeProductsApi,
   pricingApi
 } from '../api';
-import { formatCurrency, formatNumber, formatRawPercent, formatDecimalPercent } from '../utils/formatters';
+import { formatCurrency, formatRawPercent, formatDecimalPercent } from '../utils/formatters';
 
 const Marketplaces = () => {
   const [marketplaces, setMarketplaces] = useState([]);
@@ -48,6 +48,7 @@ const Marketplaces = () => {
   // Forms state
   const [storeForm, setStoreForm] = useState({ id: '', marketplace_id: '', name: '' });
   const [marketplaceForm, setMarketplaceForm] = useState({ id: '', name: '' });
+  const [editingMarketplaceId, setEditingMarketplaceId] = useState(null);
   const [costTypeForm, setCostTypeForm] = useState({ name: '', calc_type: 'percent' });
   const [costForm, setCostForm] = useState({ cost_type_id: '', value: '' });
   const [pricingForm, setPricingForm] = useState({ product_id: '', harga_jual: '' });
@@ -181,15 +182,36 @@ const Marketplaces = () => {
   const handleMarketplaceSubmit = async (e) => {
     e.preventDefault();
     try {
-      // Auto-generate ID if empty from name
-      const id = marketplaceForm.id || marketplaceForm.name.toLowerCase().replace(/\s+/g, '-');
-      await marketplacesApi.create({ id, name: marketplaceForm.name });
+      if (editingMarketplaceId) {
+        await marketplacesApi.update(editingMarketplaceId, { name: marketplaceForm.name });
+      } else {
+        // Auto-generate ID if empty from name
+        const id = marketplaceForm.id || marketplaceForm.name.toLowerCase().replace(/\s+/g, '-');
+        await marketplacesApi.create({ id, name: marketplaceForm.name });
+      }
       fetchBaseData();
       setShowMarketplaceModal(false);
       setMarketplaceForm({ id: '', name: '' });
-      setMarketplaceForm({ id: '', name: '' });
-    } catch {
-      alert("Gagal menambah marketplace");
+      setEditingMarketplaceId(null);
+    } catch (error) {
+      alert(error.response?.data?.detail || "Gagal menyimpan marketplace");
+    }
+  };
+
+  const handleDeleteMarketplace = async (e, id) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log("Requesting delete for marketplace ID:", id);
+    
+    if (!window.confirm(`Apakah Anda yakin ingin menghapus marketplace "${id}"? Tindakan ini tidak dapat dibatalkan.`)) return;
+    
+    try {
+      await marketplacesApi.delete(id);
+      console.log("Marketplace deleted successfully");
+      fetchBaseData();
+    } catch (error) {
+      console.error("Failed to delete marketplace:", error);
+      alert(error.response?.data?.detail || "Gagal menghapus marketplace");
     }
   };
 
@@ -211,6 +233,29 @@ const Marketplaces = () => {
     }
   };
 
+  // Delete Modal State
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null); // { id: '...', name: '...' }
+
+  const handleRequestDelete = (e, m) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setItemToDelete(m);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!itemToDelete) return;
+    try {
+      await marketplacesApi.delete(itemToDelete.id);
+      fetchBaseData();
+      setShowDeleteModal(false);
+      setItemToDelete(null);
+    } catch (error) {
+       alert(error.response?.data?.detail || "Gagal menghapus marketplace");
+    }
+  };
+
   return (
     <>
       <div className="animate-fade-in">
@@ -223,7 +268,11 @@ const Marketplaces = () => {
             <p style={{ color: '#94a3b8' }}>Konfigurasi biaya per toko dan kalkulasi pricing forward.</p>
           </div>
           <div style={{ display: 'flex', gap: '1rem' }}>
-            <button className="btn btn-secondary" onClick={() => setShowMarketplaceModal(true)}>
+            <button className="btn btn-secondary" onClick={() => {
+              setEditingMarketplaceId(null);
+              setMarketplaceForm({ id: '', name: '' });
+              setShowMarketplaceModal(true);
+            }}>
               <ShoppingBag size={18} /> Tambah Marketplace
             </button>
             <button className="btn btn-primary" onClick={() => setShowStoreModal(true)}>
@@ -232,7 +281,37 @@ const Marketplaces = () => {
           </div>
         </header>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, min_max(300px, 1fr))', gap: '1.5rem' }}>
+        <div style={{ marginBottom: '2rem' }}>
+          <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', color: '#94a3b8' }}>Daftar Marketplace</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '1rem' }}>
+            {marketplaces.map(m => (
+              <div key={m.id} className="glass-card" style={{ padding: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: 'all 0.2s' }}>
+                <div>
+                  <div style={{ fontWeight: '600', fontSize: '1.1rem' }}>{m.name}</div>
+                  <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontFamily: 'monospace', marginTop: '0.25rem' }}>ID: {m.id}</div>
+                </div>
+                <div style={{ display: 'flex', gap: '0.75rem', zIndex: 10 }}>
+                  <button className="btn btn-secondary" style={{ padding: '0.6rem 0.8rem', cursor: 'pointer', position: 'relative' }} onClick={(e) => {
+                    console.log("Edit clicked");
+                    setMarketplaceForm({ id: m.id, name: m.name });
+                    setEditingMarketplaceId(m.id);
+                    setShowMarketplaceModal(true);
+                  }}>
+                    <Edit2 size={16} />
+                  </button>
+                  <button className="btn btn-danger" style={{ padding: '0.6rem 0.8rem', cursor: 'pointer', position: 'relative' }} 
+                    onClick={(e) => handleRequestDelete(e, m)}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', color: '#94a3b8' }}>Daftar Toko</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
           {stores.map(store => (
             <motion.div key={store.id} className="glass-card" style={{ padding: '1.5rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
@@ -256,6 +335,32 @@ const Marketplaces = () => {
           ))}
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {showDeleteModal && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowDeleteModal(false)}
+              style={{ position: 'absolute', inset: 0, background: 'rgba(0, 0, 0, 0.6)', backdropFilter: 'blur(4px)' }} />
+             <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+               className="glass-card" style={{ position: 'relative', width: '100%', maxWidth: '400px', padding: '2rem', zIndex: 100000, border: '1px solid rgba(239, 68, 68, 0.3)' }}>
+               
+               <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                 <div style={{ background: 'rgba(239, 68, 68, 0.1)', width: '64px', height: '64px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem' }}>
+                    <Trash2 size={32} color="#ef4444" />
+                 </div>
+                 <h3 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Hapus Marketplace?</h3>
+                 <p style={{ color: '#94a3b8' }}>Anda akan menghapus <strong>{itemToDelete?.name}</strong> (ID: {itemToDelete?.id}). Tindakan ini tidak dapat dibatalkan.</p>
+               </div>
+
+               <div style={{ display: 'flex', gap: '1rem' }}>
+                 <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowDeleteModal(false)}>Batal</button>
+                 <button className="btn btn-danger" style={{ flex: 1 }} onClick={confirmDelete}>Hapus Sekarang</button>
+               </div>
+             </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Store Management Modal (Costs & Products) */}
       <AnimatePresence>
@@ -496,11 +601,15 @@ const Marketplaces = () => {
       <AnimatePresence>
         {showMarketplaceModal && (
           <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowMarketplaceModal(false)}
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => {
+              setShowMarketplaceModal(false);
+              setEditingMarketplaceId(null);
+              setMarketplaceForm({ id: '', name: '' });
+            }}
               style={{ position: 'absolute', inset: 0, background: 'rgba(0, 0, 0, 0.6)', backdropFilter: 'blur(4px)' }} />
             <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
               className="glass-card" style={{ position: 'relative', width: '100%', maxWidth: '400px', padding: '2rem', zIndex: 10000 }}>
-              <h3 style={{ marginBottom: '1.5rem' }}>Tambah Marketplace Baru</h3>
+              <h3 style={{ marginBottom: '1.5rem' }}>{editingMarketplaceId ? 'Edit Marketplace' : 'Tambah Marketplace Baru'}</h3>
               <form onSubmit={handleMarketplaceSubmit}>
                 <div className="form-group">
                   <label className="form-label">Nama Marketplace</label>
@@ -511,11 +620,17 @@ const Marketplaces = () => {
                   <label className="form-label">ID Marketplace (Slug)</label>
                   <input type="text" className="form-control" placeholder="contoh: shopee (opsional)" 
                     value={marketplaceForm.id} 
-                    onChange={(e) => setMarketplaceForm({...marketplaceForm, id: e.target.value})} />
-                  <small style={{ color: '#94a3b8', fontSize: '0.75rem' }}>Kosongkan untuk generate otomatis dari nama</small>
+                    onChange={(e) => setMarketplaceForm({...marketplaceForm, id: e.target.value})} 
+                    disabled={!!editingMarketplaceId}
+                  />
+                  {!editingMarketplaceId && <small style={{ color: '#94a3b8', fontSize: '0.75rem' }}>Kosongkan untuk generate otomatis dari nama</small>}
                 </div>
                 <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
-                  <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowMarketplaceModal(false)}>Batal</button>
+                  <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => {
+                    setShowMarketplaceModal(false);
+                    setEditingMarketplaceId(null);
+                    setMarketplaceForm({ id: '', name: '' });
+                  }}>Batal</button>
                   <button type="submit" className="btn btn-primary" style={{ flex: 1 }}><Save size={18} /> Simpan</button>
                 </div>
               </form>

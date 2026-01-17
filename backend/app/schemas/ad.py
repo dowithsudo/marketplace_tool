@@ -11,6 +11,7 @@ class AdBase(BaseModel):
     spend: int = Field(..., ge=0, description="Total pengeluaran iklan")
     gmv: int = Field(..., ge=0, description="Gross Merchandise Value")
     orders: int = Field(..., ge=0, description="Jumlah order")
+    total_sales: int | None = Field(0, ge=0, description="Total omzet toko/produk (Organik + Iklan)")
 
 
 class AdCreate(AdBase):
@@ -24,6 +25,7 @@ class AdUpdate(BaseModel):
     spend: int | None = Field(None, ge=0)
     gmv: int | None = Field(None, ge=0)
     orders: int | None = Field(None, ge=0)
+    total_sales: int | None = Field(None, ge=0)
 
 
 class AdResponse(AdBase):
@@ -31,6 +33,7 @@ class AdResponse(AdBase):
     roas: float | None = None  # gmv / spend
     aov: float | None = None   # gmv / orders
     cpa: float | None = None   # spend / orders
+    tacos: float | None = None # spend / total_sales
 
     class Config:
         from_attributes = True
