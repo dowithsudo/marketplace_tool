@@ -193,7 +193,7 @@ const AdsPerformance = () => {
         </div>
 
         <header style={{ marginBottom: '2.5rem' }}>
-          <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
             <BarChart3 color="#8b5cf6" />
             Analisis & Grading Iklan
           </h1>
@@ -201,22 +201,22 @@ const AdsPerformance = () => {
         </header>
 
         <div className="glass-card" style={{ padding: '2rem', marginBottom: '2rem' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '1.5rem', alignItems: 'flex-end' }}>
-            <div className="form-group" style={{ marginBottom: 0 }}>
+          <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+            <div className="form-group" style={{ marginBottom: 0, flex: '1 1 300px' }}>
               <label className="form-label">Pilih Toko</label>
               <select className="form-control" value={selectedStoreId} onChange={(e) => setSelectedStoreId(e.target.value)}>
                 <option value="">Pilih Toko</option>
                 {stores.map(s => <option key={s.id} value={s.id}>{s.name} ({s.marketplace_name})</option>)}
               </select>
             </div>
-            <div className="form-group" style={{ marginBottom: 0 }}>
+            <div className="form-group" style={{ marginBottom: 0, flex: '1 1 300px' }}>
               <label className="form-label">Pilih Produk</label>
               <select className="form-control" value={selectedProductId} onChange={(e) => setSelectedProductId(e.target.value)}>
                 <option value="">Pilih Produk</option>
                 {products.map(p => <option key={p.id} value={p.id}>{p.nama}</option>)}
               </select>
             </div>
-            <button className="btn btn-primary" style={{ padding: '0.8rem 2rem' }} onClick={handleAnalyze} disabled={loading}>
+            <button className="btn btn-primary" style={{ padding: '0.8rem 2rem', height: '45px', flex: '1 1 200px', justifyContent: 'center' }} onClick={handleAnalyze} disabled={loading}>
               {loading ? <RefreshCw className="animate-spin" /> : <Zap size={18} />} Analisis Kelayakan
             </button>
           </div>
@@ -233,16 +233,22 @@ const AdsPerformance = () => {
               marginBottom: '2rem',
               display: 'flex',
               alignItems: 'center',
-              gap: '2rem'
+              gap: '2rem',
+              flexWrap: 'wrap'
             }}>
               <div style={{ color: decisionUI.color }}>{decisionUI.icon}</div>
-              <div>
-                <h2 style={{ fontSize: '2rem', color: decisionUI.color, marginBottom: '0.5rem' }}>{decisionUI.label}</h2>
+              <div style={{ flex: '1 1 300px' }}>
+                <h2 style={{ fontSize: 'clamp(1.5rem, 5vw, 2rem)', color: decisionUI.color, marginBottom: '0.5rem' }}>{decisionUI.label}</h2>
                 <p style={{ fontSize: '1.1rem', opacity: 0.9 }}>{decisionUI.desc}</p>
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '2rem', marginBottom: '2rem' }}>
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', 
+              gap: '2rem', 
+              marginBottom: '2rem' 
+            }}>
               {/* Profitability Analysis */}
               <div className="glass-card" style={{ padding: '2rem' }}>
                  <h3 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -436,9 +442,9 @@ const AdsPerformance = () => {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowReverseModal(false)}
               style={{ position: 'absolute', inset: 0, background: 'rgba(0, 0, 0, 0.8)', backdropFilter: 'blur(8px)' }} />
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-              className="glass-card" style={{ position: 'relative', width: '100%', maxWidth: '900px', display: 'grid', gridTemplateColumns: '1fr 1fr', padding: '0', overflow: 'hidden', zIndex: 11000 }}>
+              className="glass-card" style={{ position: 'relative', width: '100%', maxWidth: '900px', display: 'flex', flexWrap: 'wrap', padding: '0', overflow: 'hidden', zIndex: 11000, maxHeight: '90vh', overflowY: 'auto' }}>
               
-              <div style={{ padding: '2.5rem' }}>
+              <div style={{ padding: '2.5rem', flex: '1 1 400px' }}>
                 <h2 style={{ marginBottom: '0.5rem' }}>Simulasi Harga Balik</h2>
                 <p style={{ color: '#94a3b8', marginBottom: '2rem' }}>Cari harga jual ideal agar iklan lebih aman (margin lebih tebal).</p>
                 
@@ -465,7 +471,7 @@ const AdsPerformance = () => {
                 </form>
               </div>
 
-              <div style={{ padding: '2.5rem', background: 'rgba(99, 102, 241, 0.05)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <div style={{ padding: '2.5rem', background: 'rgba(99, 102, 241, 0.05)', display: 'flex', flexDirection: 'column', justifyContent: 'center', flex: '1 1 400px' }}>
                 {reverseResult ? (
                   <div className="animate-fade-in text-center">
                     <p className="metric-label">REKOMENDASI HARGA JUAL</p>

@@ -13,7 +13,7 @@ class HPPService:
     """Service untuk menghitung HPP produk"""
     
     @staticmethod
-    def calculate_hpp(db: Session, product_id: str) -> Optional[HPPResponse]:
+    def calculate_hpp(db: Session, product_id: str, user_id: int) -> Optional[HPPResponse]:
         """
         Menghitung HPP untuk produk tertentu
         
@@ -23,23 +23,33 @@ class HPPService:
         Args:
             db: Database session
             product_id: ID produk
+            user_id: ID user saat ini
             
         Returns:
-            HPPResponse atau None jika produk tidak ditemukan
+            HPPResponse atau None jika produk tidak ditemukan atau bukan milik user
         """
         # Get product
-        product = db.query(Product).filter(Product.id == product_id).first()
+        product = db.query(Product).filter(
+            Product.id == product_id,
+            Product.user_id == user_id
+        ).first()
         if not product:
             return None
         
         # Get BOM items with materials
-        bom_items = db.query(BOM).filter(BOM.product_id == product_id).all()
+        bom_items = db.query(BOM).filter(
+            BOM.product_id == product_id,
+            BOM.user_id == user_id
+        ).all()
         
         bom_details = []
         total_bahan = 0.0
         
         for bom in bom_items:
-            material = db.query(Material).filter(Material.id == bom.material_id).first()
+            material = db.query(Material).filter(
+                Material.id == bom.material_id,
+                Material.user_id == user_id
+            ).first()
             if material:
                 biaya_bahan = bom.qty * material.harga_satuan
                 total_bahan += biaya_bahan
@@ -54,7 +64,10 @@ class HPPService:
                 ))
         
         # Get extra costs
-        extra_costs_items = db.query(ProductExtraCost).filter(ProductExtraCost.product_id == product_id).all()
+        extra_costs_items = db.query(ProductExtraCost).filter(
+            ProductExtraCost.product_id == product_id,
+            ProductExtraCost.user_id == user_id
+        ).all()
         extra_costs_responses = [ProductExtraCostResponse.from_orm(ec) for ec in extra_costs_items]
         total_extra = sum(ec.value for ec in extra_costs_items)
         
@@ -72,16 +85,17 @@ class HPPService:
         )
     
     @staticmethod
-    def get_hpp_value(db: Session, product_id: str) -> float:
+    def get_hpp_value(db: Session, product_id: str, user_id: int) -> float:
         """
         Get simple HPP value (number only)
         
         Args:
             db: Database session
             product_id: ID produk
+            user_id: ID user saat ini
             
         Returns:
-            HPP value or 0 if product not found
+            HPP value or 0 if product not found or unauthorized
         """
-        result = HPPService.calculate_hpp(db, product_id)
+        result = HPPService.calculate_hpp(db, product_id, user_id)
         return result.hpp if result else 0

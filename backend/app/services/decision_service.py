@@ -22,7 +22,7 @@ class DecisionService:
     ROAS_THRESHOLD_WARNING = 2.0  # ROAS below 2 is concerning
     
     @staticmethod
-    def get_decision(db: Session, store_id: str, product_id: str) -> Optional[DecisionResponse]:
+    def get_decision(db: Session, store_id: str, product_id: str, user_id: int) -> Optional[DecisionResponse]:
         """
         Mendapatkan keputusan/grading untuk produk di toko tertentu
         
@@ -36,13 +36,20 @@ class DecisionService:
             db: Database session
             store_id: ID toko
             product_id: ID produk
+            user_id: ID user saat ini
             
         Returns:
             DecisionResponse dengan grade dan alerts
         """
         # Get store and product
-        store = db.query(Store).filter(Store.id == store_id).first()
-        product = db.query(Product).filter(Product.id == product_id).first()
+        store = db.query(Store).filter(
+            Store.id == store_id,
+            Store.user_id == user_id
+        ).first()
+        product = db.query(Product).filter(
+            Product.id == product_id,
+            Product.user_id == user_id
+        ).first()
         
         if not store or not product:
             return None
@@ -50,14 +57,15 @@ class DecisionService:
         # Get store_product
         store_product = db.query(StoreProduct).filter(
             StoreProduct.store_id == store_id,
-            StoreProduct.product_id == product_id
+            StoreProduct.product_id == product_id,
+            StoreProduct.user_id == user_id
         ).first()
         
         if not store_product:
             return None
         
         # Get pricing info
-        pricing = PricingService.calculate_forward_pricing(db, store_product.id)
+        pricing = PricingService.calculate_forward_pricing(db, store_product.id, user_id)
         if not pricing:
             return None
         
@@ -75,7 +83,8 @@ class DecisionService:
         # Get ads data
         ads = db.query(Ad).filter(
             Ad.store_id == store_id,
-            Ad.product_id == product_id
+            Ad.product_id == product_id,
+            Ad.user_id == user_id
         ).all()
         
         has_ads_data = len(ads) > 0

@@ -281,15 +281,15 @@ const Marketplaces = () => {
   return (
     <>
       <div className="animate-fade-in">
-        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
-            <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
               <ShoppingBag color="#6366f1" />
               Marketplace & Toko
             </h1>
             <p style={{ color: '#94a3b8' }}>Konfigurasi biaya per toko dan kalkulasi pricing forward.</p>
           </div>
-          <div style={{ display: 'flex', gap: '1rem' }}>
+          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
             <button className="btn btn-secondary" onClick={() => {
               setEditingMarketplaceId(null);
               setMarketplaceForm({ id: '', name: '' });
@@ -317,7 +317,7 @@ const Marketplaces = () => {
                   <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontFamily: 'monospace', marginTop: '0.25rem' }}>ID: {m.id}</div>
                 </div>
                 <div style={{ display: 'flex', gap: '0.75rem', zIndex: 10 }}>
-                  <button className="btn btn-secondary" style={{ padding: '0.6rem 0.8rem', cursor: 'pointer', position: 'relative' }} onClick={(e) => {
+                  <button className="btn btn-secondary" style={{ padding: '0.6rem 0.8rem', cursor: 'pointer', position: 'relative' }} onClick={() => {
                     console.log("Edit clicked");
                     setMarketplaceForm({ id: m.id, name: m.name });
                     setEditingMarketplaceId(m.id);
