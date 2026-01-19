@@ -17,9 +17,12 @@ import {
   HelpCircle,
   ArrowUpRight,
   ArrowDownRight,
-  Minus
+  Minus,
+  FileText,
+  Upload,
+  Loader
 } from 'lucide-react';
-import { storesApi, productsApi, adsApi, decisionApi, pricingApi } from '../api';
+import { storesApi, productsApi, adsApi, decisionApi, pricingApi, importsApi } from '../api';
 import { formatCurrency, formatNumber, formatRawPercent, formatDecimalPercent } from '../utils/formatters';
 
 const AdsPerformance = () => {
@@ -40,10 +43,35 @@ const AdsPerformance = () => {
   const [adForm, setAdForm] = useState({ campaign: '', spend: '', gmv: '', orders: '', total_sales: '' });
   const [reverseForm, setReverseForm] = useState({ target_type: 'percent', target_value: 0.15 });
   const [reverseResult, setReverseResult] = useState(null);
+  
+  // Import Logic
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importFile, setImportFile] = useState(null);
+  const [importStoreId, setImportStoreId] = useState('');
+  const [importResult, setImportResult] = useState(null);
+  const [importLoading, setImportLoading] = useState(false);
 
   useEffect(() => {
     fetchInit();
   }, []);
+
+  const handleImportSubmit = async () => {
+    if (!importFile || !importStoreId) return;
+    setImportLoading(true);
+    try {
+      const res = await importsApi.importShopeeAds(importStoreId, importFile);
+      setImportResult(res.data);
+      // Refresh data if current view matches import store
+      if (selectedStoreId === importStoreId) {
+        handleAnalyze();
+      }
+    } catch (error) {
+      console.error(error);
+      alert(error.response?.data?.detail || "Gagal mengimport file. Pastikan format sesuai.");
+    } finally {
+      setImportLoading(false);
+    }
+  };
 
   const fetchInit = async () => {
     try {
@@ -362,6 +390,9 @@ const AdsPerformance = () => {
                   <button className="btn btn-secondary" onClick={() => setShowAddAdModal(true)} style={{ justifyContent: 'center' }}>
                     <Plus size={16} /> Update Data
                   </button>
+                  <button className="btn btn-secondary" onClick={() => setShowImportModal(true)} style={{ justifyContent: 'center', background: '#22c55e', borderColor: '#22c55e', color: 'white' }}>
+                    <Upload size={16} /> Import Laporan Shopee
+                  </button>
                 </div>
               </div>
             </div>
@@ -553,6 +584,89 @@ const AdsPerformance = () => {
                   <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>Simpan Data</button>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+      {/* Import Modal */}
+      <AnimatePresence>
+        {showImportModal && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowImportModal(false)}
+              style={{ position: 'absolute', inset: 0, background: 'rgba(0, 0, 0, 0.6)', backdropFilter: 'blur(4px)' }} />
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+              className="glass-card" style={{ position: 'relative', width: '100%', maxWidth: '500px', padding: '2rem', zIndex: 10000 }}>
+              <h3 style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <FileText size={24} color="#22c55e" /> Import Laporan Shopee
+              </h3>
+              <p style={{ color: '#94a3b8', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
+                Upload file Excel/CSV Laporan Iklan Shopee untuk analisis otomatis. Pastikan format sesuai standar Shopee.
+              </p>
+
+              <div className="form-group">
+                <label className="form-label">Pilih Toko</label>
+                <select className="form-control" value={importStoreId} onChange={(e) => setImportStoreId(e.target.value)}>
+                  <option value="">-- Pilih Toko --</option>
+                  {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+              </div>
+
+              <div 
+                style={{ 
+                  border: '2px dashed #cbd5e1', 
+                  borderRadius: '12px', 
+                  padding: '2rem', 
+                  textAlign: 'center',
+                  cursor: 'pointer',
+                  background: importFile ? 'rgba(34, 197, 94, 0.05)' : 'transparent',
+                  borderColor: importFile ? '#22c55e' : '#cbd5e1',
+                  transition: 'all 0.2s',
+                  marginBottom: '1.5rem'
+                }}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  if(e.dataTransfer.files && e.dataTransfer.files[0]) setImportFile(e.dataTransfer.files[0]);
+                }}
+                onClick={() => document.getElementById('file-upload').click()}
+              >
+                <input type="file" id="file-upload" style={{ display: 'none' }} 
+                  onChange={(e) => setImportFile(e.target.files[0])} />
+                {importFile ? (
+                  <div>
+                    <FileText size={32} color="#22c55e" style={{ margin: '0 auto 1rem' }} />
+                    <p style={{ fontWeight: '500', color: '#0f172a' }}>{importFile.name}</p>
+                    <p style={{ fontSize: '0.8rem', color: '#64748b' }}>{(importFile.size / 1024).toFixed(2)} KB</p>
+                  </div>
+                ) : (
+                  <div>
+                    <Upload size={32} color="#94a3b8" style={{ margin: '0 auto 1rem' }} />
+                    <p style={{ color: '#64748b' }}>Klik atau drop file di sini</p>
+                    <p style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.5rem' }}>Format: .csv, .xlsx</p>
+                  </div>
+                )}
+              </div>
+
+              {importResult && (
+                <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '1rem', marginBottom: '1.5rem' }}>
+                  <p style={{ color: '#166534', fontWeight: '500', fontSize: '0.9rem', marginBottom: '0.5rem' }}>✅ Import Berhasil!</p>
+                  <ul style={{ fontSize: '0.85rem', color: '#15803d', paddingLeft: '1.25rem', margin: 0 }}>
+                    <li>Total Import: <b>{importResult.rows_imported}</b> data</li>
+                    <li>Dilewati: <b>{importResult.rows_skipped}</b> (Duplikat/Unknown)</li>
+                    <li>Spend: {formatCurrency(importResult.total_spend)}</li>
+                    <li>GMV: {formatCurrency(importResult.total_gmv)}</li>
+                  </ul>
+                  <p style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.5rem', fontStyle: 'italic' }}>{importResult.summary}</p>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: '1rem' }}>
+                <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowImportModal(false)}>tutup</button>
+                <button type="button" className="btn btn-primary" style={{ flex: 1, background: '#22c55e', borderColor: '#22c55e' }} onClick={handleImportSubmit} disabled={importLoading || !importFile || !importStoreId}>
+                  {importLoading ? <Loader className="animate-spin" size={18} /> : <Upload size={18} />} 
+                  {importLoading ? ' Mengupload...' : ' Mulai Import'}
+                </button>
+              </div>
             </motion.div>
           </div>
         )}

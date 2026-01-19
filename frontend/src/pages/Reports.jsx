@@ -9,7 +9,8 @@ import {
   History,
   TrendingUp,
   LineChart,
-  X
+  X,
+  Trash2
 } from 'lucide-react';
 import { storesApi, importsApi } from '../api';
 import { formatCurrency, formatDecimalPercent, formatNumber } from '../utils/formatters';
@@ -123,6 +124,18 @@ const Reports = () => {
     }
   };
 
+  const handleDeleteReport = async (id, e) => {
+    e.stopPropagation(); // Mencegah modal terbuka
+    if (!window.confirm("Hapus histori laporan ini? Catatan: Ini hanya menghapus catatan histori upload agar file bisa di-upload ulang jika sebelumnya gagal.")) return;
+    
+    try {
+      await importsApi.deleteReport(id);
+      setReportHistory(reportHistory.filter(h => h.id !== id));
+    } catch {
+      alert("Gagal menghapus laporan history");
+    }
+  };
+
   return (
     <div className="animate-fade-in">
       <header style={{ marginBottom: '2.5rem' }}>
@@ -184,10 +197,10 @@ const Reports = () => {
               }}
               onClick={() => document.getElementById('reportFile').click()}
             >
-              <input 
+               <input 
                 type="file" 
                 id="reportFile" 
-                accept=".xlsx, .xls" 
+                accept=".xlsx, .xls, .csv" 
                 style={{ display: 'none' }} 
                 onChange={handleFileChange}
               />
@@ -199,8 +212,8 @@ const Reports = () => {
                 </div>
               ) : (
                 <div>
-                  <p style={{ fontWeight: '500' }}>Klik atau drop file Excel {importMode === 'overview' ? 'Ringkasan' : 'Produk'}</p>
-                  <p style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Format: {importMode === 'overview' ? 'Ringkasan Penjualan (.xlsx)' : 'Performa Produk (.xlsx)'}</p>
+                  <p style={{ fontWeight: '500' }}>Klik atau drop file {importMode === 'overview' ? 'Ringkasan' : 'Produk'}</p>
+                  <p style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Format: {importMode === 'overview' ? 'Ringkasan Penjualan (.xlsx, .csv)' : 'Performa Produk (.xlsx, .csv)'}</p>
                 </div>
               )}
             </div>
@@ -295,6 +308,7 @@ const Reports = () => {
                           <th>Gross Rev.</th>
                           <th>Net Rev.</th>
                           <th>Upload Di</th>
+                          <th style={{ width: '50px' }}></th>
                         </tr>
                       </thead>
                       <tbody>
@@ -315,6 +329,15 @@ const Reports = () => {
                             <td>{formatCurrency(rep.total_gross)}</td>
                             <td>{formatCurrency(rep.total_net)}</td>
                             <td>{new Date(rep.upload_date).toLocaleDateString('id-ID')}</td>
+                            <td style={{ textAlign: 'right' }}>
+                              <button 
+                                onClick={(e) => handleDeleteReport(rep.id, e)}
+                                style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '0.4rem', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                title="Hapus Histori"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
